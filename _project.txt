@@ -1,0 +1,3 @@
+https://example.git.com/{group}/{project}.git
+https://example.git.com/{group}/{subgroup}/{project}.git
+https://github.com/{nickname}/{repository}.git

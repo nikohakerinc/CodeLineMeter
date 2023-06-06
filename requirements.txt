@@ -1,0 +1,6 @@
+python-dotenv==1.0.0
+python-gitlab==3.14.0
+GitPython==3.1.31
+plotly==5.14.1
+pandas==2.0.2
+kaleido==0.2.0
