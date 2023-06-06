@@ -114,10 +114,10 @@ for project in projects:
     sum += total_lines
     
     # Удаление скаченного репозитория
-    # os.system(f"rm -rf {repo_dir}")         # Если код запускается Linux
+    os.system(f"rm -rf {repo_dir}")         # Если код запускается Linux
     # os.system(f"rm -rf {repo_dir}")         # Чтоб наверняка удалил папку
     os.system(f"rd /s /q {repo_dir}")       # Если код запускается в Windows
-    os.system(f"rd /s /q {repo_dir}")       # Чтоб наверняка удалил папку
+    # os.system(f"rd /s /q {repo_dir}")       # Чтоб наверняка удалил папку
 
 # Запись результатов в файл count.csv
 with open('count.csv', 'a') as f:
