@@ -1,19 +1,21 @@
+# Импорт зависимостей
 import os
 import gitlab
 import logging
-import csv
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 from dotenv import load_dotenv
 
 
+# Загрузка переменных среды
 load_dotenv()
 GIT_URL = os.getenv('GIT_URL')
 GIT_TOKEN = os.getenv('GIT_TOKEN')
 GIT_USERNAME = os.getenv('GIT_USERNAME')
 GIT_PASSWORD = os.getenv('GIT_PASSWORD')
 
+# Метод подключения к GIT
 gl = gitlab.Gitlab(GIT_URL, private_token=GIT_TOKEN)
 
 # Создаем директорию для логов, если она не существует
@@ -25,9 +27,25 @@ if not os.path.exists(log_dir):
 logging.basicConfig(filename=os.path.join(log_dir, 'info.log'), level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
-gl = gitlab.Gitlab(GIT_URL, private_token=GIT_TOKEN)
+# Функция записи результатов в файл count.csv
+def write_results_to_file(result, languages, total):
+    # Создаём файл 'count.csv' и записываем в него названия колонок
+    with open('count.csv', 'a') as f:
+        keys = ";".join(languages.keys())
+        f.write(f"Project URL;Project Name;{keys};Total lines of code\n")
 
-# Инициализация словаря с языками программирования
+    # Запись результатов в файл 'count.csv'
+    with open('count.csv', 'a') as f:
+        for repo_url, values in result.items():
+            line = f"{repo_url};{';'.join(map(str, values))}\n"
+            f.write(line)
+
+    # Добавляем отступы и записываем общее количество строк кода в конец файла 'count.csv'
+    with open('count.csv', 'a') as f:
+        f.write('\n\n')
+        f.write(f"Total lines of code:; {total}\n")
+
+# Инициализация словаря с языками программирования и списком форматов файлов для каждого языка
 languages = {
     'Python': ['.py', '.bzl', '.cgi', '.fcgi', '.gyp', '.lmi', '.pyde', '.pyp', '.pyt', '.pyw', '.rpy', '.tac', '.wsgi', '.xpy', '.pytb'],
     'Java': ['.java', '.jsp'],
@@ -66,39 +84,36 @@ languages = {
 }
 
 # Инициализация счётчика строк кода и результирующего словаря
-sum = 0
+total = 0
 result = {}
 
-# Создаём файл 'count.csv' и записываем в него названия колонок
-with open('count.csv', 'a') as f:
-    keys = ";".join(languages.keys())
-    f.write(f"Project URL;Project Name;{keys};Total lines of code\n")
+# Конструкция обработки исключений в случае их возникновения при подсчёте строк кода
+try:
+    # Клонирование репозитория и процесс подсчёта строк кода
+    with open('project.txt', 'r') as f:
+        projects = [project.strip() for project in f.readlines() if project.strip()]
 
-# Клонирование репозитория и процесс подсчёта строк кода
-with open('project.txt', 'r') as f:
-    projects = [project.strip() for project in f.readlines() if project.strip()]
+    for project in projects:
+        # Получаем репозиторий
+        repo_url = project.strip().replace("https://", "")
+        repo_dir = repo_url[repo_url.rfind("/") + 1:].replace(".git", "")
+        project_dir = "/".join(repo_url.split("/")[-2:])[:-4]       # Сохраняет проект + папка вышестоящей подгруппы
+        # Клонирование репозитория
+        os.system(f"git clone https://{GIT_USERNAME}:{GIT_PASSWORD}@{repo_url} {repo_dir}")
 
-for project in projects:
-    # Получаем репозиторий
-    repo_url = project.strip().replace("https://", "")
-    repo_dir = repo_url[repo_url.rfind("/") + 1:].replace(".git", "")
-    project_dir = "/".join(repo_url.split("/")[-2:])[:-4]       # Сохраняет проект + папка вышестоящей подгруппы
-    # Клонирование репозитория
-    os.system(f"git clone https://{GIT_USERNAME}:{GIT_PASSWORD}@{repo_url} {repo_dir}")
+        # Инициализация подсчёта строк кода по языкам
+        language_lines = {lang: 0 for lang in languages}
 
-    # Инициализация подсчёта строк кода по языкам
-    language_lines = {lang: 0 for lang in languages}
+        # Подсчёт строк кода в репозитории
+        total_lines = 0
+        for root, dirs, files in os.walk(repo_dir):
+            for file in files:
+                file_path = os.path.join(root, file)
+                _, extension = os.path.splitext(file)
 
-    # Подсчёт строк кода в репозитории
-    total_lines = 0
-    for root, dirs, files in os.walk(repo_dir):
-        for file in files:
-            file_path = os.path.join(root, file)
-            _, extension = os.path.splitext(file)
-
-            # Подсчет строк на основе расширения файла
-            for lang in languages:
-                if extension.lower() in languages[lang]:
+                # Подсчет строк на основе расширения файла
+                for lang in languages:
+                 if extension.lower() in languages[lang]:
                     try:
                         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                             lines = f.readlines()
@@ -107,26 +122,30 @@ for project in projects:
                             total_lines += len(non_empty_lines)
                     except UnicodeDecodeError:
                         pass
-
+        
+        # Запись результатов подсчёта в словарь 'result' с сортировкой по языкам программирования            
         result[repo_url] = (project_dir,) + tuple(language_lines.values()) + (total_lines,)
 
-    # Добавляем количество строк кода проекта к общему счетчику
-    sum += total_lines
-    
-    # Удаление скаченного репозитория
-    os.system(f"rm -rf {repo_dir}")         # Если код запускается Linux
-    # os.system(f"rm -rf {repo_dir}")         # Чтоб наверняка удалил папку
-    os.system(f"rd /s /q {repo_dir}")       # Если код запускается в Windows
-    # os.system(f"rd /s /q {repo_dir}")       # Чтоб наверняка удалил папку
+        # Добавляем количество строк кода проекта к общему счетчику
+        total += total_lines
+        
+        # Удаление скаченного репозитория
+        # os.system(f"rm -rf {repo_dir}")         # Если код запускается Linux
+        # os.system(f"rm -rf {repo_dir}")         # Чтоб наверняка удалил папку
+        os.system(f"rd /s /q {repo_dir}")       # Если код запускается в Windows
+        os.system(f"rd /s /q {repo_dir}")       # Чтоб наверняка удалил папку
 
-# Запись результатов в файл count.csv
-with open('count.csv', 'a') as f:
-    for repo_url, values in result.items():
-        line = f"{repo_url};{';'.join(map(str, values))}\n"
-        f.write(line)
+        pass
+# В случае разрыва интернет соединения, ожидать переподключения
+except Exception as e:
+    raise e
+# В случае отмены выполнения кода с клавиатуры, продолжать выполнение кода
+except: 
+    pass
 
+# Конструкция обработки исключений для блока построения диаграмм
 try:
-    # Инициализация словаря temp
+    # Инициализация словаря 'temp'
     temp = {
         'Python': 0,
         'Java': 0,
@@ -164,16 +183,13 @@ try:
         'Other Lang': 0
     }
 
-    # Чтение файла count.csv и суммирование значений по колонкам
-    with open('count.csv', 'r') as file:
-        reader = csv.reader(file, delimiter=';')
-        next(reader)  # Пропуск заголовков колонок
-        for row in reader:
-            # Исключаем 1(Project URL), 2(Project Name) и последнюю колонки (Total lines)
-            for i, value in enumerate(row[2:-1]):
-                temp[list(temp.keys())[i]] += int(value)
-
-    # Фильтрация колонок содержащих только нулевых значений
+    # Чтение словаря 'result' и суммирование значений по колонкам (языкам) и дальнейшего построения диаграмм
+    for values in result.values():
+        language_lines = values[1:-1]
+        for language, lines in zip(temp.keys(), language_lines):
+            temp[language] += lines
+            
+    # Фильтрация колонок содержащих только ненулевых значений
     temp_filtered = {k: v for k, v in temp.items() if v != 0}
 
     # Создание DataFrame и сортировка от большего суммарного значения к меньшему
@@ -199,7 +215,7 @@ try:
         )
     )
 
-    # Запись гистограммы в файл gistogram.pdf в горизонтальной ориентации
+    # Запись гистограммы в файл 'gistogram.pdf' в горизонтальной ориентации
     fig.write_image("gistogram.pdf", engine="kaleido", format="pdf", width=1920, height=1080, scale=1.25)
 
     # Построение кольцевой диаграммы
@@ -214,12 +230,16 @@ try:
     x=0.5, y=0.5, font_size=20, showarrow=False)]
     )
 
-    # Запись кольцевой диаграммы в файл ring_diagram.pdf в горизонтальной ориентации
+    # Запись кольцевой диаграммы в файл 'ring_diagram.pdf' в горизонтальной ориентации
     fig.write_image("ring_diagram.pdf", engine="kaleido", format="pdf", width=1920, height=1080, scale=1.25)
-except:
-    # Добавляем отступы и записываем общее количество строк кода в конец файла count.csv
-    with open('count.csv', 'a') as f:
-        f.write('\n\n')
-        f.write(f"Total lines of code:; {sum}")
 
-print(f"Total lines of code: {sum}")
+# В случае исключения, запуск функции записи результатов в файл 'count.csv'
+except:
+    write_results_to_file(result, languages, total)
+
+# Если результат выполнения всего кода успешный, запуск функции записи результатов в файл 'count.csv'
+else:
+    write_results_to_file(result, languages, total)
+
+# Печать сообщения с общим количеством строк по репозиторию(ям)
+print(f"Total lines of code: {total}")
