@@ -1,4 +1,12 @@
-# Импорт зависимостей
+
+'''To Do List
+1. Переработать логирование
+2. Перепроверить всё на наличие хардкода
+3. Дополнить словарь languages другими популярными языками и расширениями файлов
+4. Попробовать преобразовать программу в бинарный файл
+5. Попробовать реализовать GUI или Web - интерфейс
+6. Оттестировать код на чувствительность к потерям интернет соединения, другим всевозможным сбоям'''
+
 import os
 import gitlab
 #import logging
@@ -8,9 +16,8 @@ import plotly.graph_objects as go
 import pandas as pd
 from dotenv import load_dotenv
 
-
-# Загрузка переменных среды
 load_dotenv()
+
 GIT_URL = os.getenv('GIT_URL')
 GIT_TOKEN = os.getenv('GIT_TOKEN')
 GIT_USERNAME = os.getenv('GIT_USERNAME')
@@ -35,7 +42,6 @@ if not os.path.exists(reports_dir):
     
 # Функция записи результатов в файл count.csv
 def write_results_to_file(result, languages, total, reports_dir):
-    # Путь к файлу 'count.csv' в папке 'reports'
     count_csv_path = os.path.join(reports_dir, 'count.csv')
 
     # Создаём файл 'count.csv' и записываем в него названия колонок
@@ -54,7 +60,6 @@ def write_results_to_file(result, languages, total, reports_dir):
         f.write('\n\n')
         f.write(f"Total lines of code:; {total}\n")
 
-# Инициализация счётчика строк кода и результирующего словаря
 total = 0
 result = {}
 
@@ -104,7 +109,7 @@ try:
         # os.system(f"rm -rf {repo_dir}")         # Если код запускается Linux
         # os.system(f"rm -rf {repo_dir}")         # Чтоб наверняка удалил папку
         os.system(f"rd /s /q {repo_dir}")       # Если код запускается в Windows
-        os.system(f"rd /s /q {repo_dir}")       # Чтоб наверняка удалил папку
+        # os.system(f"rd /s /q {repo_dir}")       # Чтоб наверняка удалил папку
 
         pass
 # В случае разрыва интернет соединения, ожидать переподключения
@@ -114,21 +119,21 @@ except Exception as e:
 except: 
     pass
 
+# Инициализация словаря 'temp' на основе словаря 'languages'
+temp = {key: 0 for key in languages}
+
+# Чтение словаря 'result' и суммирование значений по колонкам (языкам) и дальнейшего построения диаграмм
+for values in result.values():
+    language_lines = values[1:-1]
+    for language, lines in zip(temp.keys(), language_lines):
+        temp[language] += lines
+
+# Фильтрация колонок содержащих только ненулевых значений
+temp_filtered = {k: v for k, v in temp.items() if v != 0}
+
 # Функция построения отчётных диаграмм
-def generate_visualizations(result, languages, reports_dir):
+def generate_visualizations(temp_filtered, reports_dir):
     try:
-        # Инициализация словаря 'temp' на основе словаря 'languages'
-        temp = {key: 0 for key in languages}
-
-        # Чтение словаря 'result' и суммирование значений по колонкам (языкам) и дальнейшего построения диаграмм
-        for values in result.values():
-            language_lines = values[1:-1]
-            for language, lines in zip(temp.keys(), language_lines):
-                temp[language] += lines
-
-        # Фильтрация колонок содержащих только ненулевых значений
-        temp_filtered = {k: v for k, v in temp.items() if v != 0}
-
         # Создание DataFrame и сортировка от большего суммарного значения к меньшему
         df = pd.DataFrame({'Language': list(temp_filtered.keys()), 'Count': list(temp_filtered.values())})
         df = df.sort_values('Count', ascending=False)
@@ -146,7 +151,6 @@ def generate_visualizations(result, languages, reports_dir):
             legend=dict(font=dict(size=18))
         )
 
-        # Путь к файлу 'gistogram.pdf' в папке 'reports'
         gistogram_pdf_path = os.path.join(reports_dir, 'gistogram.pdf')
 
         # Запись гистограммы в файл 'gistogram.pdf' в горизонтальной ориентации
@@ -164,7 +168,6 @@ def generate_visualizations(result, languages, reports_dir):
             x=0.5, y=0.5, font_size=20, showarrow=False)]
         )
 
-        # Путь к файлу 'ring_diagram.pdf' в папке 'reports'
         ring_diagram_pdf_path = os.path.join(reports_dir, 'ring_diagram.pdf')
 
         # Запись гистограммы в файл 'ring_diagram.pdf' в горизонтальной ориентации
@@ -178,8 +181,7 @@ def generate_visualizations(result, languages, reports_dir):
         # Возвращаем False, чтобы показать, что код завершился с ошибкой
         return False
 
-   
-if generate_visualizations(result, languages, reports_dir):
+if generate_visualizations(temp_filtered, reports_dir):
     write_results_to_file(result, languages, total, reports_dir)
 else:
     write_results_to_file(result, languages, total, reports_dir)
