@@ -1,12 +1,3 @@
-
-'''To Do List
-1. Переработать логирование
-2. Перепроверить всё на наличие хардкода
-3. Дополнить словарь languages другими популярными языками и расширениями файлов
-4. Попробовать преобразовать программу в бинарный файл
-5. Попробовать реализовать GUI или Web - интерфейс
-6. Оттестировать код на чувствительность к потерям интернет соединения, другим всевозможным сбоям'''
-
 import os
 import gitlab
 import logging
@@ -81,15 +72,16 @@ result = {}
 # Клонирование репозитория и процесс подсчёта строк кода
 with open('project.txt', 'r') as f:
     projects = [project.strip() for project in f.readlines() if project.strip()]
+line_count = len(projects)
 
-for project in projects:
+for i, project in enumerate(projects, start=1):
     # Получаем репозиторий
     repo_url = project.strip().replace("https://", "")
     repo_dir = repo_url[repo_url.rfind("/") + 1:].replace(".git", "")
     project_dir = "/".join(repo_url.split("/")[-2:])[:-4]       # Сохраняет проект + папка вышестоящей подгруппы
     # Клонирование репозитория
     start_time = datetime.datetime.now()
-    logging.info(f"Start cloning a repository: {project_dir}")
+    logging.info(f"Start cloning a repository ({i}/{line_count}): {project_dir}")
     os.system(f"git clone https://{GIT_USERNAME}:{GIT_PASSWORD}@{repo_url} {repo_dir}")
     end_time = datetime.datetime.now()
     logging.info(f"Finish cloning a repository: {project_dir}")
@@ -124,17 +116,15 @@ for project in projects:
         
     # Запись результатов подсчёта в словарь 'result' с сортировкой по языкам программирования            
     result[repo_url] = (project_dir,) + tuple(language_lines.values()) + (total_lines,)
-        
-    # Добавляем количество строк кода проекта к общему счетчику
+
     total += total_lines
-        
+    logging.info(f"Total lines of code: {total}")
+      
     # Удаление скаченного репозитория
     # os.system(f"rm -rf {repo_dir}")         # Если код запускается Linux
     # os.system(f"rm -rf {repo_dir}")         # Чтоб наверняка удалил папку
     os.system(f"rd /s /q {repo_dir}")       # Если код запускается в Windows
     os.system(f"rd /s /q {repo_dir}")       # Чтоб наверняка удалил папку
-
-logging.info(f"Total lines of code: {total}")
 
 # Коммит изменений в БД и закрытие подключения
 conn.commit()
