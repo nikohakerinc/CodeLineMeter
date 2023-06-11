@@ -9,7 +9,8 @@
 
 import os
 import gitlab
-#import logging
+import logging
+import datetime
 from utils.lang import lang_dict as languages
 import plotly.express as px
 import plotly.graph_objects as go
@@ -34,7 +35,7 @@ if not os.path.exists(log_dir):
 
 # Задаем уровень логов
 logging.basicConfig(filename=os.path.join(log_dir, 'info.log'), level=logging.DEBUG,
-                    format='%(asctime)s %(levelname)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+                    format='%(levelname)s: %(asctime)s %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
 
 # Создаем директорию для отчётов, если она не существует
 reports_dir = 'reports'
@@ -87,7 +88,13 @@ for project in projects:
     repo_dir = repo_url[repo_url.rfind("/") + 1:].replace(".git", "")
     project_dir = "/".join(repo_url.split("/")[-2:])[:-4]       # Сохраняет проект + папка вышестоящей подгруппы
     # Клонирование репозитория
+    start_time = datetime.datetime.now()
+    logging.info(f"Start cloning a repository: {project_dir}")
     os.system(f"git clone https://{GIT_USERNAME}:{GIT_PASSWORD}@{repo_url} {repo_dir}")
+    end_time = datetime.datetime.now()
+    logging.info(f"Finish cloning a repository: {project_dir}")
+    timer = end_time - start_time
+    logging.info(f"Cloning took time: {timer}")
 
     # Инициализация подсчёта строк кода по языкам
     language_lines = {lang: 0 for lang in languages}
@@ -125,13 +132,15 @@ for project in projects:
     # os.system(f"rm -rf {repo_dir}")         # Если код запускается Linux
     # os.system(f"rm -rf {repo_dir}")         # Чтоб наверняка удалил папку
     os.system(f"rd /s /q {repo_dir}")       # Если код запускается в Windows
-    # os.system(f"rd /s /q {repo_dir}")       # Чтоб наверняка удалил папку
+    os.system(f"rd /s /q {repo_dir}")       # Чтоб наверняка удалил папку
+
+logging.info(f"Total lines of code: {total}")
 
 # Коммит изменений в БД и закрытие подключения
 conn.commit()
 conn.close()
 
-# Экспорт данных из БД в count.csv
+# Экспорт данных из БД в countdb.csv
 conn = sqlite3.connect(os.path.join(reports_dir, 'code_stats.db'))
 c = conn.cursor()
 
@@ -212,5 +221,4 @@ if generate_visualizations(temp_filtered, reports_dir):
 else:
     write_results_to_file(result, languages, total, reports_dir)
     
-# Печать сообщения с общим количеством строк по репозиторию(ям)
 print(f"Total lines of code: {total}")
