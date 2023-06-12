@@ -139,7 +139,7 @@ with open(os.path.join(reports_dir, 'countdb.csv'), 'w') as f:
     f.write(f"Project URL;Project Name;{keys};Total lines of code\n")
 
     for row in c.execute("SELECT * FROM projects"):
-        project_data = [str(item) for item in row[:-1]]  # Конвертация integers to strings
+        project_data = [str(item) for item in row[:-1]]  # Конвертация integers to string
         project_lines = str(row[-1])
         f.write(f"{';'.join(project_data)};{project_lines}\n")
 
@@ -149,9 +149,6 @@ conn.close()
 with open(os.path.join(reports_dir, 'countdb.csv'), 'a') as f:
     f.write('\n\n')
     f.write(f"Total lines of code:; {total}")
-
-# print(f"Total lines of code: {sum}")
-
 
 # Инициализация словаря 'temp' на основе словаря 'languages'
 temp = {key: 0 for key in languages}
@@ -184,10 +181,10 @@ def generate_visualizations(temp_filtered, reports_dir):
             legend=dict(font=dict(size=18))
         )
 
-        gistogram_pdf_path = os.path.join(reports_dir, 'gistogram.pdf')
+        histogram_pdf_path = os.path.join(reports_dir, 'histogram.pdf')
 
-        # Запись гистограммы в файл 'gistogram.pdf' в горизонтальной ориентации
-        fig.write_image(gistogram_pdf_path, engine="kaleido", format="pdf", width=1920, height=1080, scale=1.25)
+        # Запись гистограммы в файл 'histogram.pdf' в горизонтальной ориентации
+        fig.write_image(histogram_pdf_path, engine="kaleido", format="pdf", width=1920, height=1080, scale=1.25)
 
         # Построение кольцевой диаграммы
         fig = go.Figure()
@@ -201,10 +198,10 @@ def generate_visualizations(temp_filtered, reports_dir):
             x=0.5, y=0.5, font_size=20, showarrow=False)]
         )
 
-        ring_diagram_pdf_path = os.path.join(reports_dir, 'ring_diagram.pdf')
+        donut_diagram_pdf_path = os.path.join(reports_dir, 'donut_diagram.pdf')
 
-        # Запись гистограммы в файл 'ring_diagram.pdf' в горизонтальной ориентации
-        fig.write_image(ring_diagram_pdf_path, engine="kaleido", format="pdf", width=1920, height=1080, scale=1.25)
+        # Запись гистограммы в файл 'donut_diagram.pdf' в горизонтальной ориентации
+        fig.write_image(donut_diagram_pdf_path, engine="kaleido", format="pdf", width=1920, height=1080, scale=1.25)
 
 if generate_visualizations(temp_filtered, reports_dir):
     write_results_to_file(result, languages, total, reports_dir)
