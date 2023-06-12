@@ -36,7 +36,7 @@ lang_dict = {
     'CSS': ['.css', '.mss', '.scss'],
     'Basic': ['.bb', '.decls', '.pb', '.pbi', '.rbbas', '.rbfrm', '.rbmnu', '.rbres', '.rbtbar', '.rbuistate', '.vb',
               '.bas', '.cls', '.frm', '.frx', '.vba', '.vbhtml', '.vbs'],
-    'Pascal/Delphy': ['.pas', '.dfm', '.dpr', '.dpk', '.dproj', '.fmx', '.bpl', '.inc', '.lpr', '.pp', '.cp', '.cps'],
+    'Pascal/Delphi': ['.pas', '.dfm', '.dpr', '.dpk', '.dproj', '.fmx', '.bpl', '.inc', '.lpr', '.pp', '.cp', '.cps'],
     'FORTRAN': ['.f90', '.f', '.f03', '.f08', '.f77', '.f95', '.for', '.fpp'],
     'Kobol': ['.cob', '.cbl', '.ccp', '.cobol', '.cpy'],
     'Groovy': ['.groovy', '.grt', '.gtpl', '.gvy', '.gsp'],
