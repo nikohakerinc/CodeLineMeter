@@ -1,4 +1,5 @@
 import os
+import shutil
 import gitlab
 import logging
 import datetime
@@ -66,19 +67,23 @@ def write_results_to_file(result, languages, total, reports_dir):
         f.write('\n\n')
         f.write(f"Total lines of code:; {total}\n")
 
-total = 0
-result = {}
+repo_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "repo")
+if not os.path.exists(repo_folder):
+    os.makedirs(repo_folder)
 
-# Клонирование репозитория и процесс подсчёта строк кода
 with open('project.txt', 'r') as f:
     projects = [project.strip() for project in f.readlines() if project.strip()]
 line_count = len(projects)
 
+total = 0
+result = {}
+
 for i, project in enumerate(projects, start=1):
     # Получаем репозиторий
     repo_url = project.strip().replace("https://", "")
-    repo_dir = repo_url[repo_url.rfind("/") + 1:].replace(".git", "")
-    project_dir = "/".join(repo_url.split("/")[-2:])[:-4]       # Сохраняет проект + папка вышестоящей подгруппы
+    repo_dir = os.path.join(repo_folder, repo_url[repo_url.rfind("/") + 1:].replace(".git", ""))
+    project_dir = "/".join(repo_url.split("/")[-2:])[:-4]  # Сохраняет проект + папка вышестоящей подгруппы
+    
     # Клонирование репозитория
     start_time = datetime.datetime.now()
     logging.info(f"Start cloning a repository ({i}/{line_count}): {project_dir}")
@@ -86,7 +91,9 @@ for i, project in enumerate(projects, start=1):
     end_time = datetime.datetime.now()
     logging.info(f"Finish cloning a repository: {project_dir}")
     timer = end_time - start_time
-    logging.info(f"Cloning took time: {timer}")
+    timer_seconds = timer.total_seconds()
+    timer_rounded = round(timer_seconds, 2)
+    logging.info(f"Cloning took time: {timer_rounded} seconds")
 
     # Инициализация подсчёта строк кода по языкам
     language_lines = {lang: 0 for lang in languages}
@@ -109,26 +116,28 @@ for i, project in enumerate(projects, start=1):
                             total_lines += len(non_empty_lines)
                     except UnicodeDecodeError:
                         pass
+                    
     # Внесение данных о проекте в Базу Данных
     c.execute("INSERT INTO projects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (repo_url, project_dir) + tuple(language_lines.values()) + (total_lines,))
-        
-        
+       
     # Запись результатов подсчёта в словарь 'result' с сортировкой по языкам программирования            
     result[repo_url] = (project_dir,) + tuple(language_lines.values()) + (total_lines,)
 
     total += total_lines
     logging.info(f"Total lines of code: {total}")
-      
-    # Удаление скаченного репозитория
-    # os.system(f"rm -rf {repo_dir}")         # Если код запускается Linux
-    # os.system(f"rm -rf {repo_dir}")         # Чтоб наверняка удалил папку
-    os.system(f"rd /s /q {repo_dir}")       # Если код запускается в Windows
-    os.system(f"rd /s /q {repo_dir}")       # Чтоб наверняка удалил папку
+    
+    # Удаление содержимого папки repo_dir, оставляя папку 'repo'
+    shutil.rmtree(repo_dir, ignore_errors=True)
+    os.system(f"rm -rf {repo_dir} 2> /dev/null")    # Для Linux/Mac
+    os.system(f"rd /s /q {repo_dir} 2> nul")        # Для Windows
+
 
 # Коммит изменений в БД и закрытие подключения
 conn.commit()
 conn.close()
+
+shutil.rmtree(repo_folder, ignore_errors=True)
 
 # Экспорт данных из БД в countdb.csv
 conn = sqlite3.connect(os.path.join(reports_dir, 'code_stats.db'))
@@ -139,7 +148,7 @@ with open(os.path.join(reports_dir, 'countdb.csv'), 'w') as f:
     f.write(f"Project URL;Project Name;{keys};Total lines of code\n")
 
     for row in c.execute("SELECT * FROM projects"):
-        project_data = [str(item) for item in row[:-1]]  # Конвертация integers to string
+        project_data = [str(item) for item in row[:-1]]  # Конвертация int to string
         project_lines = str(row[-1])
         f.write(f"{';'.join(project_data)};{project_lines}\n")
 
