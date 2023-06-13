@@ -3,7 +3,7 @@ import shutil
 import gitlab
 import logging
 import datetime
-from utils.lang import lang_dict as languages
+import json
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
@@ -28,6 +28,10 @@ if not os.path.exists(log_dir):
 # Задаем уровень логов
 logging.basicConfig(filename=os.path.join(log_dir, 'info.log'), level=logging.DEBUG,
                     format='%(levelname)s: %(asctime)s %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
+
+with open('lang_dict.json', 'r') as json_file:
+    json_data = json_file.read()
+languages = json.loads(json_data)
 
 # Создаем директорию для отчётов, если она не существует
 reports_dir = 'reports'
