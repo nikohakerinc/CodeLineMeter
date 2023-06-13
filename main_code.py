@@ -77,6 +77,7 @@ line_count = len(projects)
 
 total = 0
 result = {}
+global_start_time = datetime.datetime.now()
 
 for i, project in enumerate(projects, start=1):
     # Получаем репозиторий
@@ -132,6 +133,9 @@ for i, project in enumerate(projects, start=1):
     os.system(f"rm -rf {repo_dir} 2> /dev/null")    # Для Linux/Mac
     os.system(f"rd /s /q {repo_dir} 2> nul")        # Для Windows
 
+global_end_time = datetime.datetime.now()
+global_timer = global_end_time - global_start_time
+logging.info(f"Total execution time: {(str(global_timer).split('.')[0])}")
 
 # Коммит изменений в БД и закрытие подключения
 conn.commit()
