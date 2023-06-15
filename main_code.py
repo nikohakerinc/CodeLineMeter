@@ -87,12 +87,9 @@ class CodeLineMeter:
         start_time = datetime.datetime.now()
         logging.info(f"Start cloning a repository ({i}/{line_count}): {project_dir}")
         os.system(f"git clone https://{GIT_USERNAME}:{GIT_PASSWORD}@{repo_url} {repo_dir}")
-        end_time = datetime.datetime.now()
         logging.info(f"Finish cloning a repository: {project_dir}")
-        timer = end_time - start_time
-        timer_seconds = timer.total_seconds()
-        timer_rounded = round(timer_seconds, 2)
-        logging.info(f"Cloning took time: {timer_rounded} seconds")
+        timer_rounded = round(((datetime.datetime.now() - start_time).total_seconds()), 2)
+        logging.info(f"Completed in: {timer_rounded} seconds")
 
         language_lines = {lang: 0 for lang in self.languages}
         total_lines = 0
@@ -148,9 +145,7 @@ class CodeLineMeter:
             except Exception as e:
                 logging.error(f"Error analyzing project: {project_dir}.git\nError message: {str(e)}")
 
-        self.end_time = datetime.datetime.now()
-        elapsed_time = self.end_time - self.start_time
-        logging.info(f"Analysis completed in {(str(elapsed_time).split('.')[0])}")
+        logging.info(f"Analysis completed in {(str((datetime.datetime.now() - self.start_time)).split('.')[0])}")
         shutil.rmtree(self.repo_folder)
         
         return self.result, self.total
