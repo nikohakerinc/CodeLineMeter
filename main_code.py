@@ -1,14 +1,16 @@
 import os
-import shutil
-import gitlab
-import logging
 import datetime
+import shutil
+import logging
 import json
+import asyncio
+import sqlite3
+import gitlab
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 from dotenv import load_dotenv
-import sqlite3
+
 
 load_dotenv()
 
@@ -17,170 +19,153 @@ GIT_TOKEN = os.getenv('GIT_TOKEN')
 GIT_USERNAME = os.getenv('GIT_USERNAME')
 GIT_PASSWORD = os.getenv('GIT_PASSWORD')
 
-# Метод подключения к GIT
-gl = gitlab.Gitlab(GIT_URL, private_token=GIT_TOKEN)
+class CodeLineMeter:
+    def __init__(self):
+        self.gl = gitlab.Gitlab(GIT_URL, private_token=GIT_TOKEN)
+        self.languages = self.load_languages()
+        self.log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
+        self.reports_dir = 'reports'
+        self.repo_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "repo")
+        self.projects = [] # Список проектов
+        self.total = 0 # Общий счётчик строк
+        self.result = {} # Словарь с результатами
+        self.start_time = None
+        self.global_start_time = datetime.datetime.now()
+        self.conn = None
+        self.c = None
+        self.create_directories()
+        self.setup_logging()
+        self.create_table()
+        self.read_projects()
 
-# Создаем директорию для логов, если она не существует
-log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir)
+    # Импорт JSON файла с языками программирования с соответствующими форматами файлов
+    def load_languages(self):
+        with open('lang_dict.json', 'r') as json_file:
+            json_data = json_file.read()
+        return json.loads(json_data)
 
-# Задаем уровень логов
-logging.basicConfig(filename=os.path.join(log_dir, 'info.log'), level=logging.DEBUG,
-                    format='%(levelname)s: %(asctime)s %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
+    # Создание рабочих папок
+    def create_directories(self):
+        if not os.path.exists(self.log_dir):
+            os.makedirs(self.log_dir)
+        if not os.path.exists(self.reports_dir):
+            os.makedirs(self.reports_dir)
+        if not os.path.exists(self.repo_folder):
+            os.makedirs(self.repo_folder)
 
-with open('lang_dict.json', 'r') as json_file:
-    json_data = json_file.read()
-languages = json.loads(json_data)
+    # Настройка логирования
+    def setup_logging(self):
+        logging.basicConfig(filename=os.path.join(self.log_dir, 'info.log'), level=logging.DEBUG,
+                            format='%(levelname)s: %(asctime)s %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
 
-# Создаем директорию для отчётов, если она не существует
-reports_dir = 'reports'
-if not os.path.exists(reports_dir):
-    os.makedirs(reports_dir)
-    
-# Инициализация подключения к Базе данных
-conn = sqlite3.connect(os.path.join(reports_dir, 'code_stats.db'))
-c = conn.cursor()
-
-# Создание таблицы проектов если она отсутствует
-c.execute('''CREATE TABLE IF NOT EXISTS projects
+    # Создаём базу для альтернативного отчёта
+    def create_table(self):
+        if not self.conn:
+            self.conn = sqlite3.connect(os.path.join(self.reports_dir, 'code_stats.db'))
+            self.c = self.conn.cursor()
+            # Создание таблицы проектов если она отсутствует
+            self.c.execute('''CREATE TABLE IF NOT EXISTS projects
              (project_url TEXT, project_name TEXT, python INTEGER, java INTEGER, c INTEGER, cplusplus INTEGER,
               objc INTEGER, csharp INTEGER, javascript INTEGER, php INTEGER, ruby INTEGER, swift INTEGER, go INTEGER,
               rust INTEGER, kotlin INTEGER, lua INTEGER, scala INTEGER, typescript INTEGER, sql INTEGER, shell INTEGER,
               powershell INTEGER, batch INTEGER, perl INTEGER, html INTEGER, css INTEGER, basic INTEGER, pascal INTEGER,
               fortran INTEGER, kobol INTEGER, groovy INTEGER, json INTEGER, yaml INTEGER, xml INTEGER, markdown INTEGER,
               text INTEGER, logfiles INTEGER, configfiles INTEGER, otherlang INTEGER, total_lines INTEGER)''')
-    
-# Функция записи результатов в файл count.csv
-def write_results_to_file(result, languages, total, reports_dir):
-    count_csv_path = os.path.join(reports_dir, 'count.csv')
 
-    # Создаём файл 'count.csv' и записываем в него названия колонок
-    with open(count_csv_path, 'a') as f:
-        keys = ";".join(languages.keys())
-        f.write(f"Project URL;Project Name;{keys};Total lines of code\n")
+    # Считывание списка проектов из файла 'project.txt'
+    def read_projects(self):
+        with open('project.txt', 'r') as f:
+            self.projects = [project.strip() for project in f.readlines() if project.strip()]
 
-    # Запись результатов в файл 'count.csv'
-    with open(count_csv_path, 'a') as f:
-        for repo_url, values in result.items():
-            line = f"{repo_url};{';'.join(map(str, values))}\n"
-            f.write(line)
+    # Клонирование репозиториев
+    def clone_repository(self, project, i, line_count):
+        result = {}
+        repo_url = project.strip().replace("https://", "")
+        repo_dir = os.path.join(self.repo_folder, repo_url[repo_url.rfind("/") + 1:].replace(".git", ""))
+        project_dir = "/".join(repo_url.split("/")[-2:])[:-4]
 
-    # Добавляем отступы и записываем общее количество строк кода в конец файла 'count.csv'
-    with open(count_csv_path, 'a') as f:
-        f.write('\n\n')
-        f.write(f"Total lines of code:; {total}\n")
+        start_time = datetime.datetime.now()
+        logging.info(f"Start cloning a repository ({i}/{line_count}): {project_dir}")
+        os.system(f"git clone https://{GIT_USERNAME}:{GIT_PASSWORD}@{repo_url} {repo_dir}")
+        end_time = datetime.datetime.now()
+        logging.info(f"Finish cloning a repository: {project_dir}")
+        timer = end_time - start_time
+        timer_seconds = timer.total_seconds()
+        timer_rounded = round(timer_seconds, 2)
+        logging.info(f"Cloning took time: {timer_rounded} seconds")
 
-repo_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "repo")
-if not os.path.exists(repo_folder):
-    os.makedirs(repo_folder)
+        language_lines = {lang: 0 for lang in self.languages}
+        total_lines = 0
+        for root, dirs, files in os.walk(repo_dir):
+            for file in files:
+                file_path = os.path.join(root, file)
+                _, extension = os.path.splitext(file)
+                for lang in self.languages:
+                    if extension.lower() in self.languages[lang]:
+                        try:
+                            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                                lines = f.readlines()
+                                non_empty_lines = [line for line in lines if line.strip()]
+                                language_lines[lang] += len(non_empty_lines)
+                                total_lines += len(non_empty_lines)
+                        except UnicodeDecodeError:
+                            logging.warning(f"Failed to read file: {file_path}")
+        
+        result[repo_url] = (project_dir,) + tuple(language_lines.values()) + (total_lines,)                  
+        self.write_to_database(repo_url, project_dir, language_lines, total_lines)
 
-with open('project.txt', 'r') as f:
-    projects = [project.strip() for project in f.readlines() if project.strip()]
-line_count = len(projects)
+        # Удаление содержимого папки repo_dir, оставляя папку 'repo'
+        shutil.rmtree(repo_dir, ignore_errors=True)
+        os.system(f"rm -rf {repo_dir} 2> /dev/null")    # Для Linux/Mac
+        os.system(f"rd /s /q {repo_dir} 2> nul")        # Для Windows
+                
+        return result, total_lines
 
-total = 0
-result = {}
-global_start_time = datetime.datetime.now()
+    # Запись подсчётов по каждому проекту в таблицу 'projects' в БД 'code_state.db'
+    def write_to_database(self, repo_url, project_dir, language_lines, total_lines):
+        if not self.conn:
+            self.conn = sqlite3.connect(os.path.join(self.reports_dir, 'code_stats.db'))
+            self.c = self.conn.cursor()
 
-for i, project in enumerate(projects, start=1):
-    # Получаем репозиторий
-    repo_url = project.strip().replace("https://", "")
-    repo_dir = os.path.join(repo_folder, repo_url[repo_url.rfind("/") + 1:].replace(".git", ""))
-    project_dir = "/".join(repo_url.split("/")[-2:])[:-4]  # Сохраняет проект + папка вышестоящей подгруппы
-    
-    # Клонирование репозитория
-    start_time = datetime.datetime.now()
-    logging.info(f"Start cloning a repository ({i}/{line_count}): {project_dir}")
-    os.system(f"git clone https://{GIT_USERNAME}:{GIT_PASSWORD}@{repo_url} {repo_dir}")
-    end_time = datetime.datetime.now()
-    logging.info(f"Finish cloning a repository: {project_dir}")
-    timer = end_time - start_time
-    timer_seconds = timer.total_seconds()
-    timer_rounded = round(timer_seconds, 2)
-    logging.info(f"Cloning took time: {timer_rounded} seconds")
-
-    # Инициализация подсчёта строк кода по языкам
-    language_lines = {lang: 0 for lang in languages}
-
-    # Подсчёт строк кода в репозитории
-    total_lines = 0
-    for root, dirs, files in os.walk(repo_dir):
-        for file in files:
-            file_path = os.path.join(root, file)
-            _, extension = os.path.splitext(file)
-
-            # Подсчет строк на основе расширения файла
-            for lang in languages:
-                if extension.lower() in languages[lang]:
-                    try:
-                        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                            lines = f.readlines()
-                            non_empty_lines = [line for line in lines if line.strip()]
-                            language_lines[lang] += len(non_empty_lines)
-                            total_lines += len(non_empty_lines)
-                    except UnicodeDecodeError:
-                        pass
-                    
-    # Внесение данных о проекте в Базу Данных
-    c.execute("INSERT INTO projects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        self.c.execute('''INSERT INTO projects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
+                       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
             (repo_url, project_dir) + tuple(language_lines.values()) + (total_lines,))
-       
-    # Запись результатов подсчёта в словарь 'result' с сортировкой по языкам программирования            
-    result[repo_url] = (project_dir,) + tuple(language_lines.values()) + (total_lines,)
+        self.conn.commit()
 
-    total += total_lines
-    logging.info(f"Total lines of code: {total}")
-    
-    # Удаление содержимого папки repo_dir, оставляя папку 'repo'
-    shutil.rmtree(repo_dir, ignore_errors=True)
-    os.system(f"rm -rf {repo_dir} 2> /dev/null")    # Для Linux/Mac
-    os.system(f"rd /s /q {repo_dir} 2> nul")        # Для Windows
+    # Управление последовательностью выполнения
+    async def analyze_projects(self):
+        line_count = len(self.projects)
+        logging.info(f"Analyzing {line_count} projects...")
+        self.start_time = datetime.datetime.now()
 
-global_end_time = datetime.datetime.now()
-global_timer = global_end_time - global_start_time
-logging.info(f"Total execution time: {(str(global_timer).split('.')[0])}")
+        for i, project in enumerate(self.projects, start=1):
+            try:
+                result, total_lines = self.clone_repository(project, i, line_count)
+                self.result.update(result)
+                self.total += total_lines
+                logging.info(f"Total lines of code: {self.total}")
 
-# Коммит изменений в БД и закрытие подключения
-conn.commit()
-conn.close()
+            except Exception as e:
+                logging.error(f"Error analyzing project: {project_dir}.git\nError message: {str(e)}")
 
-shutil.rmtree(repo_folder, ignore_errors=True)
+        self.end_time = datetime.datetime.now()
+        elapsed_time = self.end_time - self.start_time
+        logging.info(f"Analysis completed in {(str(elapsed_time).split('.')[0])}")
+        shutil.rmtree(self.repo_folder)
+        
+        return self.result, self.total
 
-# Экспорт данных из БД в countdb.csv
-conn = sqlite3.connect(os.path.join(reports_dir, 'code_stats.db'))
-c = conn.cursor()
+    def generate_visualizations(self, result, languages, reports_dir):
+        # Инициализация словаря 'temp' на основе словаря 'languages'
+        temp = {key: 0 for key in languages}
+        # Чтение словаря 'result' и суммирование значений по колонкам (языкам) и дальнейшего построения диаграмм
+        for values in result.values():
+            language_lines = values[1:-1]
+            for language, lines in zip(temp.keys(), language_lines):
+                temp[language] += lines
 
-with open(os.path.join(reports_dir, 'countdb.csv'), 'w') as f:
-    keys = ";".join(languages.keys())
-    f.write(f"Project URL;Project Name;{keys};Total lines of code\n")
-
-    for row in c.execute("SELECT * FROM projects"):
-        project_data = [str(item) for item in row[:-1]]  # Конвертация int to string
-        project_lines = str(row[-1])
-        f.write(f"{';'.join(project_data)};{project_lines}\n")
-
-conn.close()
-
-# Добавляем отступы и записываем общее количество строк кода в конец файла
-with open(os.path.join(reports_dir, 'countdb.csv'), 'a') as f:
-    f.write('\n\n')
-    f.write(f"Total lines of code:; {total}")
-
-# Инициализация словаря 'temp' на основе словаря 'languages'
-temp = {key: 0 for key in languages}
-
-# Чтение словаря 'result' и суммирование значений по колонкам (языкам) и дальнейшего построения диаграмм
-for values in result.values():
-    language_lines = values[1:-1]
-    for language, lines in zip(temp.keys(), language_lines):
-        temp[language] += lines
-
-# Фильтрация колонок содержащих только ненулевых значений
-temp_filtered = {k: v for k, v in temp.items() if v != 0}
-
-# Функция построения отчётных диаграмм
-def generate_visualizations(temp_filtered, reports_dir):
+        # Фильтрация колонок содержащих только ненулевых значений
+        temp_filtered = {k: v for k, v in temp.items() if v != 0}
         # Создание DataFrame и сортировка от большего суммарного значения к меньшему
         df = pd.DataFrame({'Language': list(temp_filtered.keys()), 'Count': list(temp_filtered.values())})
         df = df.sort_values('Count', ascending=False)
@@ -199,8 +184,6 @@ def generate_visualizations(temp_filtered, reports_dir):
         )
 
         histogram_pdf_path = os.path.join(reports_dir, 'histogram.pdf')
-
-        # Запись гистограммы в файл 'histogram.pdf' в горизонтальной ориентации
         fig.write_image(histogram_pdf_path, engine="kaleido", format="pdf", width=1920, height=1080, scale=1.25)
 
         # Построение кольцевой диаграммы
@@ -216,13 +199,46 @@ def generate_visualizations(temp_filtered, reports_dir):
         )
 
         donut_diagram_pdf_path = os.path.join(reports_dir, 'donut_diagram.pdf')
+        fig.write_image(donut_diagram_pdf_path, engine="kaleido", format="pdf", width=1920, height=1080, scale=1.25) 
 
-        # Запись гистограммы в файл 'donut_diagram.pdf' в горизонтальной ориентации
-        fig.write_image(donut_diagram_pdf_path, engine="kaleido", format="pdf", width=1920, height=1080, scale=1.25)
+    # Запись данных в файл
+    def write_results_to_file(self, result, languages, total, reports_dir):
+        count_csv_path = os.path.join(reports_dir, 'count.csv')
+        with open(count_csv_path, 'a') as f:
+            keys = ";".join(languages.keys())
+            f.write(f"Project URL;Project Name;{keys};Total lines of code\n")
+            for repo_url, values in result.items():
+                line = f"{repo_url};{';'.join(map(str, values))}\n"
+                f.write(line)
+            f.write('\n\n')
+            f.write(f"Total lines of code:; {total}")
+         
+    # Экспорт данных из БД в countdb.csv
+    def write_dbdata_to_file(self, languages, total, reports_dir):
+        if not self.conn:
+            self.conn = sqlite3.connect(os.path.join(self.reports_dir, 'code_stats.db'))
+            self.c = self.conn.cursor()
 
-if generate_visualizations(temp_filtered, reports_dir):
-    write_results_to_file(result, languages, total, reports_dir)
-else:
-    write_results_to_file(result, languages, total, reports_dir)
-    
-print(f"Total lines of code: {total}")
+        with open(os.path.join(reports_dir, 'countdb.csv'), 'w') as f:
+            keys = ";".join(languages.keys())
+            f.write(f"Project URL;Project Name;{keys};Total lines of code\n")
+            for row in self.c.execute("SELECT * FROM projects"):
+                project_data = [str(item) for item in row[:-1]]  # Конвертация int to string
+                project_lines = str(row[-1])
+                f.write(f"{';'.join(project_data)};{project_lines}\n")
+            f.write('\n\n')
+            f.write(f"Total lines of code:; {total}")
+        self.conn.close()
+
+
+def main():
+    code_stats = CodeLineMeter()
+    result, total_lines = asyncio.run(code_stats.analyze_projects())
+    code_stats.generate_visualizations(result, code_stats.languages, code_stats.reports_dir)
+    code_stats.write_results_to_file(result, code_stats.languages, total_lines, code_stats.reports_dir)
+    code_stats.write_dbdata_to_file(code_stats.languages, total_lines, code_stats.reports_dir)
+    print(f"Total lines of code: {total_lines}")
+
+
+if __name__ == '__main__':
+    main()
