@@ -3,7 +3,6 @@ import datetime
 import shutil
 import logging
 import json
-import asyncio
 import sqlite3
 import gitlab
 import plotly.express as px
@@ -130,7 +129,7 @@ class CodeLineMeter:
         self.conn.commit()
 
     # Управление последовательностью выполнения
-    async def analyze_projects(self):
+    def analyze_projects(self):
         line_count = len(self.projects)
         logging.info(f"Analyzing {line_count} projects...")
         self.start_time = datetime.datetime.now()
@@ -228,7 +227,7 @@ class CodeLineMeter:
 
 def main():
     code_stats = CodeLineMeter()
-    result, total_lines = asyncio.run(code_stats.analyze_projects())
+    result, total_lines = code_stats.analyze_projects()
     code_stats.generate_visualizations(result, code_stats.languages, code_stats.reports_dir)
     code_stats.write_results_to_file(result, code_stats.languages, total_lines, code_stats.reports_dir)
     code_stats.write_dbdata_to_file(code_stats.languages, total_lines, code_stats.reports_dir)
