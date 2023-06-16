@@ -15,8 +15,6 @@ I. На локальном компьютере
 2. Установить на компьютер Python 3.10+
 3. Установить необходимые зависимости:
    
-   `pip install asyncio`
-   
    `pip install python-dotenv`
 
    `pip install python-gitlab`
