@@ -193,7 +193,39 @@ class CodeLineMeter:
         )
 
         donut_diagram_pdf_path = os.path.join(reports_dir, 'donut_diagram.pdf')
-        fig.write_image(donut_diagram_pdf_path, engine="kaleido", format="pdf", width=1920, height=1080, scale=1.25) 
+        fig.write_image(donut_diagram_pdf_path, engine="kaleido", format="pdf", width=1920, height=1080, scale=1.25)
+
+        # Построение пузырьковой диаграммы
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=df['Language'],
+            y=df['Count'],
+            mode='markers',
+            marker=dict(
+                size=df['Count'],
+                sizemode='diameter',
+                sizeref=2.0 * df['Count'].max() / (10.0 ** 2),  #sizeref=df['Count'].max() / 10,
+                sizemin=15,
+                color=df['Count'],  # Используем столбец 'Count' для определения цвета пузырьков
+                colorscale='mrybm',  # Выбираем цветовую схему (можно выбрать другую схему)
+                showscale=True,  # Показываем шкалу цвета
+            )
+        ))
+
+        fig.update_layout(
+            title={
+                    'text': 'Пузырьковая диаграмма',
+                    'x': 0.5,
+                    'font': {'size': 36}
+                    },
+            xaxis=dict(title={'text': 'Языки программирования', 'font': {'size': 24}}),
+            yaxis=dict(title={'text': 'Количество строк кода', 'font': {'size': 24}}),
+            showlegend=False,
+            plot_bgcolor='rgba(0,0,0,0)'
+        )
+
+        bubble_chart_pdf_path = os.path.join(reports_dir, 'bubble_chart.pdf')
+        fig.write_image(bubble_chart_pdf_path, engine="kaleido", format="pdf", width=1920, height=1080, scale=1.25)
 
     # Запись данных в файл
     def write_results_to_file(self, result, languages, total, reports_dir):
