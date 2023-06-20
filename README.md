@@ -12,14 +12,10 @@ I. На локальном компьютере
    
    `git clone https://github.com/nikohakerinc/CodeLineMeter/`
 
-2. Установить на компьютер Python 3.10+
+2. Установить на компьютер **[Python 3.10+](https://www.python.org/downloads/)** и **[Git](https://git-scm.com/downloads)**
 3. Установить необходимые зависимости:
    
    `pip install python-dotenv`
-
-   `pip install python-gitlab`
-   
-   `pip install gitpython`
    
    `pip install plotly`
    
@@ -28,7 +24,7 @@ I. На локальном компьютере
    `pip install kaleido` (на данный момент последняя версия 0.2.1, в случае возникновения проблем необходимо установить версию 0.2.0 выполнив команду `pip install kaleido==0.2.0`)
 
 4. Переименовать файл **_env.example** в **.env**.
-   Изменить **GIT_URL**, **GIT_TOKEN***, **GIT_USERNAME** и **GIT_PASSWORD** на свои данные.
+   Изменить **GIT_URL**, **GIT_USERNAME** и **GIT_TOKEN*** на свои данные.
 
     *подробнее о том, что такое **GIT_TOKEN** и как его получить, можно почесть **[здесь](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html)**
 
