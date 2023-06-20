@@ -4,7 +4,6 @@ import shutil
 import logging
 import json
 import sqlite3
-import gitlab
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
@@ -14,13 +13,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 GIT_URL = os.getenv('GIT_URL')
-GIT_TOKEN = os.getenv('GIT_TOKEN')
 GIT_USERNAME = os.getenv('GIT_USERNAME')
-GIT_PASSWORD = os.getenv('GIT_PASSWORD')
+GIT_TOKEN = os.getenv('GIT_TOKEN')
 
 class CodeLineMeter:
     def __init__(self):
-        self.gl = gitlab.Gitlab(GIT_URL, private_token=GIT_TOKEN)
         self.languages = self.load_languages()
         self.log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
         self.reports_dir = 'reports'
@@ -85,7 +82,7 @@ class CodeLineMeter:
 
         start_time = datetime.datetime.now()
         logging.info(f"Start cloning a repository ({i}/{line_count}): {project_dir}")
-        os.system(f"git clone https://{GIT_USERNAME}:{GIT_PASSWORD}@{repo_url} {repo_dir}")
+        os.system(f"git clone https://{GIT_USERNAME}:{GIT_TOKEN}@{repo_url} {repo_dir}")
         logging.info(f"Finish cloning a repository: {project_dir}")
         timer_rounded = round(((datetime.datetime.now() - start_time).total_seconds()), 2)
         logging.info(f"Completed in: {timer_rounded} seconds")
