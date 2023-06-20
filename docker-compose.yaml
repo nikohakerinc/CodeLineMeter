@@ -11,6 +11,5 @@ services:
       - GIT_URL=${GIT_URL}
       - GIT_TOKEN=${GIT_TOKEN}
       - GIT_USERNAME=${GIT_USERNAME}
-      - GIT_PASSWORD=${GIT_PASSWORD}
     command: >
       sh -c "python /opt/project/main_code.py >> /opt/project/logs/console.log 2>&1"
