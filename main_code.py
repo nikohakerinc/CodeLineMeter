@@ -4,7 +4,6 @@ import shutil
 import logging
 import json
 import sqlite3
-import gitlab
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
@@ -14,13 +13,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 GIT_URL = os.getenv('GIT_URL')
-GIT_TOKEN = os.getenv('GIT_TOKEN')
 GIT_USERNAME = os.getenv('GIT_USERNAME')
-GIT_PASSWORD = os.getenv('GIT_PASSWORD')
+GIT_TOKEN = os.getenv('GIT_TOKEN')
 
 class CodeLineMeter:
     def __init__(self):
-        self.gl = gitlab.Gitlab(GIT_URL, private_token=GIT_TOKEN)
         self.languages = self.load_languages()
         self.log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
         self.reports_dir = 'reports'
@@ -85,7 +82,7 @@ class CodeLineMeter:
 
         start_time = datetime.datetime.now()
         logging.info(f"Start cloning a repository ({i}/{line_count}): {project_dir}")
-        os.system(f"git clone https://{GIT_USERNAME}:{GIT_PASSWORD}@{repo_url} {repo_dir}")
+        os.system(f"git clone https://{GIT_USERNAME}:{GIT_TOKEN}@{repo_url} {repo_dir}")
         logging.info(f"Finish cloning a repository: {project_dir}")
         timer_rounded = round(((datetime.datetime.now() - start_time).total_seconds()), 2)
         logging.info(f"Completed in: {timer_rounded} seconds")
@@ -193,7 +190,39 @@ class CodeLineMeter:
         )
 
         donut_diagram_pdf_path = os.path.join(reports_dir, 'donut_diagram.pdf')
-        fig.write_image(donut_diagram_pdf_path, engine="kaleido", format="pdf", width=1920, height=1080, scale=1.25) 
+        fig.write_image(donut_diagram_pdf_path, engine="kaleido", format="pdf", width=1920, height=1080, scale=1.25)
+
+        # Построение пузырьковой диаграммы
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=df['Language'],
+            y=df['Count'],
+            mode='markers',
+            marker=dict(
+                size=df['Count'],
+                sizemode='diameter',
+                sizeref=2.0 * df['Count'].max() / (10.0 ** 2),  #sizeref=df['Count'].max() / 10,
+                sizemin=15,
+                color=df['Count'],  # Используем столбец 'Count' для определения цвета пузырьков
+                colorscale='mrybm',  # Выбираем цветовую схему (можно выбрать другую схему)
+                showscale=True,  # Показываем шкалу цвета
+            )
+        ))
+
+        fig.update_layout(
+            title={
+                    'text': 'Пузырьковая диаграмма',
+                    'x': 0.5,
+                    'font': {'size': 36}
+                    },
+            xaxis=dict(title={'text': 'Языки программирования', 'font': {'size': 24}}),
+            yaxis=dict(title={'text': 'Количество строк кода', 'font': {'size': 24}}),
+            showlegend=False,
+            plot_bgcolor='rgba(0,0,0,0)'
+        )
+
+        bubble_chart_pdf_path = os.path.join(reports_dir, 'bubble_chart.pdf')
+        fig.write_image(bubble_chart_pdf_path, engine="kaleido", format="pdf", width=1920, height=1080, scale=1.25)
 
     # Запись данных в файл
     def write_results_to_file(self, result, languages, total, reports_dir):
