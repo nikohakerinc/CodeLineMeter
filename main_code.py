@@ -59,14 +59,20 @@ class CodeLineMeter:
         if not self.conn:
             self.conn = sqlite3.connect(os.path.join(self.reports_dir, 'code_stats.db'))
             self.c = self.conn.cursor()
-            # Создание таблицы проектов если она отсутствует
-            self.c.execute('''CREATE TABLE IF NOT EXISTS projects
-             (project_url TEXT, project_name TEXT, python INTEGER, java INTEGER, c INTEGER, cplusplus INTEGER,
-              objc INTEGER, csharp INTEGER, javascript INTEGER, php INTEGER, ruby INTEGER, swift INTEGER, go INTEGER,
-              rust INTEGER, kotlin INTEGER, lua INTEGER, scala INTEGER, typescript INTEGER, sql INTEGER, shell INTEGER,
-              powershell INTEGER, batch INTEGER, perl INTEGER, html INTEGER, css INTEGER, basic INTEGER, pascal INTEGER,
-              fortran INTEGER, kobol INTEGER, groovy INTEGER, json INTEGER, yaml INTEGER, xml INTEGER, markdown INTEGER,
-              text INTEGER, logfiles INTEGER, configfiles INTEGER, otherlang INTEGER, total_lines INTEGER)''')
+
+            # Базовый SQL запрос
+            create_table_sql = '''
+                CREATE TABLE IF NOT EXISTS projects (
+                    project_url TEXT,
+                    project_name TEXT,
+            '''
+            # Добавление колонок для языков динамически из значений JSON
+            for lang, extensions in self.languages.items():
+                lang_col_name = lang.lower().replace(' ', '')
+                create_table_sql += f'"{lang_col_name}" INTEGER, '
+            # Завершение SQL-запроса, добавление в таблицу колонки total lines
+            create_table_sql += 'total_lines INTEGER)'
+            self.c.execute(create_table_sql)
 
     # Считывание списка проектов из файла 'project.txt'
     def read_projects(self):
@@ -139,7 +145,7 @@ class CodeLineMeter:
                 logging.info(f"Total lines of code: {self.total}")
 
             except Exception as e:
-                logging.error(f"Error analyzing project: {project_dir}.git\nError message: {str(e)}")
+                logging.error(f"Error analyzing project: {self.repo_folder}.git\nError message: {str(e)}")
 
         logging.info(f"Analysis completed in {(str((datetime.datetime.now() - self.start_time)).split('.')[0])}")
         shutil.rmtree(self.repo_folder)
@@ -168,9 +174,10 @@ class CodeLineMeter:
         fig.update_layout(
             plot_bgcolor='white', paper_bgcolor='white',
             width=1600, height=900, margin=dict(t=15, l=15, r=15, b=15),
-            xaxis_title='Языки программирования', yaxis_title='Количество строк кода',
-            xaxis=dict(tickfont=dict(size=16)),
-            yaxis=dict(tickfont=dict(size=16)),
+            xaxis_title='Языки программирования',
+            yaxis_title='Количество строк кода',
+            xaxis=dict(title_font=dict(size=25), tickfont=dict(size=16)),
+            yaxis=dict(title_font=dict(size=25), tickfont=dict(size=16)),
             legend=dict(font=dict(size=18))
         )
 
@@ -184,9 +191,10 @@ class CodeLineMeter:
         fig.update_traces(textfont=dict(size=15))
         fig.update_layout(
             margin=dict(l=0, r=0, t=30, b=0),
+            legend=dict(font=dict(size=14)),
             legend_orientation="v",
             annotations=[dict(text='Соотношение<br>количества строк<br>программного кода<br>в Git<br>репозитории(ях)',
-            x=0.5, y=0.5, font_size=20, showarrow=False)]
+            x=0.5, y=0.5, font_size=30, showarrow=False)]
         )
 
         donut_diagram_pdf_path = os.path.join(reports_dir, 'donut_diagram.pdf')
@@ -201,11 +209,12 @@ class CodeLineMeter:
             marker=dict(
                 size=df['Count'],
                 sizemode='diameter',
-                sizeref=2.0 * df['Count'].max() / (10.0 ** 2),  #sizeref=df['Count'].max() / 10,
+                sizeref=0.8 * df['Count'].max() / 100.0,
                 sizemin=15,
                 color=df['Count'],  # Используем столбец 'Count' для определения цвета пузырьков
                 colorscale='mrybm',  # Выбираем цветовую схему (можно выбрать другую схему)
                 showscale=True,  # Показываем шкалу цвета
+                colorbar=dict(tickfont=dict(size=18)),  # Устанавливаем размер шрифта Цветового столба
             )
         ))
 
@@ -215,10 +224,11 @@ class CodeLineMeter:
                     'x': 0.5,
                     'font': {'size': 36}
                     },
-            xaxis=dict(title={'text': 'Языки программирования', 'font': {'size': 24}}),
-            yaxis=dict(title={'text': 'Количество строк кода', 'font': {'size': 24}}),
-            showlegend=False,
-            plot_bgcolor='rgba(0,0,0,0)'
+            xaxis_title='Языки программирования',
+            yaxis_title='Количество строк кода',
+            xaxis=dict(title_font=dict(size=25), tickfont=dict(size=20)),
+            yaxis=dict(title_font=dict(size=25), tickfont=dict(size=20)),
+            plot_bgcolor='white', paper_bgcolor='white',
         )
 
         bubble_chart_pdf_path = os.path.join(reports_dir, 'bubble_chart.pdf')
