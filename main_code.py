@@ -33,6 +33,7 @@ class CodeLineMeter:
         self.setup_logging()
         self.create_table()
         self.read_projects()
+        print(type(self.languages))
 
     # Импорт JSON файла с языками программирования с соответствующими форматами файлов
     def load_languages(self):
@@ -126,9 +127,12 @@ class CodeLineMeter:
             self.conn = sqlite3.connect(os.path.join(self.reports_dir, 'code_stats.db'))
             self.c = self.conn.cursor()
 
-        self.c.execute('''INSERT INTO projects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
-                       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-            (repo_url, project_dir) + tuple(language_lines.values()) + (total_lines,))
+        placeholders = ', '.join(['?' for _ in range(len(self.languages.keys()) + 3)])
+        insert_values = '''INSERT INTO projects VALUES ('''
+        insert_values += placeholders
+        insert_values += ')'
+        values = (repo_url, project_dir) + tuple(language_lines.values()) + (total_lines,)
+        self.c.execute(insert_values, values)
         self.conn.commit()
 
     # Управление последовательностью выполнения
