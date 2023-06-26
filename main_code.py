@@ -33,7 +33,6 @@ class CodeLineMeter:
         self.setup_logging()
         self.create_table()
         self.read_projects()
-        print(type(self.languages))
 
     # Импорт JSON файла с языками программирования с соответствующими форматами файлов
     def load_languages(self):
