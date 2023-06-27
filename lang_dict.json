@@ -400,7 +400,7 @@
         ".mkdown",
         ".ron"
     ],
-    "Any Text (Non code)": [
+    "Any Text": [
         ".txt",
         ".doc",
         ".docx",
