@@ -445,7 +445,8 @@
         ".pro",
         ".properties",
         ".nginxconf",
-        ".vhost"
+        ".vhost",
+        ".lock"
     ],
     "Other Lang": [
         ".asc",
