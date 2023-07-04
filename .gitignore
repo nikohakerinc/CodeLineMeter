@@ -1,5 +1,5 @@
 *.env
-*.env.test
+*.env*
 project.txt
 /tmp
 /logs
