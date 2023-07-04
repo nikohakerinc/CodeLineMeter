@@ -13,3 +13,5 @@ services:
       - GIT_USERNAME=${GIT_USERNAME}
     command: >
       sh -c "python /opt/project/main_code.py >> /opt/project/logs/console.log 2>&1"
+    container_name: CodeLineMeter
+    image: gitapp
