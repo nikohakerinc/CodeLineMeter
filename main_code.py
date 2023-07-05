@@ -4,6 +4,9 @@ import shutil
 import logging
 import json
 import sqlite3
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
@@ -237,7 +240,87 @@ class CodeLineMeter:
         bubble_chart_pdf_path = os.path.join(reports_dir, 'bubble_chart.pdf')
         fig.write_image(bubble_chart_pdf_path, engine="kaleido", format="pdf", width=1920, height=1080, scale=1.25)
 
-    # Запись данных в файл
+
+        # Фильтрация колонок содержащих только значения больше 0.05 Max Count
+        new_temp_filtered = {k: v for k, v in temp.items() if v > 0.05 * max(temp.values())}
+        # Создание нового DataFrame
+        df_s = pd.DataFrame({'Language': list(new_temp_filtered.keys()), 'Count': list(new_temp_filtered.values())})
+        # Сортировка DataFrame по алфавиту
+        df_s = df_s.sort_values('Language', ascending=True)
+
+        # Построение Polar диаграммы
+        plt.gcf().set_size_inches(12, 12)
+        sns.set_style('darkgrid')
+
+        # Установим максимальное значение
+        max_val = max(df_s['Count'])*1.05
+        ax = plt.subplot(projection='polar')
+
+        for i in range(len(df_s)):
+            ax.barh(i, list(df_s['Count'])[i]*2*np.pi/max_val,
+            label=list(df_s['Language'])[i], color=plt.cm.plasma(i/len(df_s)))
+
+        # Зададим внутренний график
+        ax.set_theta_zero_location('N')
+        ax.set_theta_direction(1)
+        ax.set_rlabel_position(0)
+        ax.set_thetagrids([], labels=[])
+        ax.set_rgrids(range(len(df_s)), labels= df_s['Language'])
+
+        # Установим проекцию
+        ax = plt.subplot(projection='polar')
+        plt.legend(bbox_to_anchor=(1, 1), loc=2)
+        
+        polar_chart_pdf_path = os.path.join(reports_dir, 'polar_chart.pdf')
+        plt.savefig(polar_chart_pdf_path, format="pdf", dpi=300, orientation='portrait', bbox_inches='tight')
+
+        # Построение Радиальной диаграммы
+        plt.figure(figsize=(12, 12))
+        ax = plt.subplot(111, polar=True)
+        plt.axis()
+
+        # Установим минимальное и максимальное значение
+        lowerLimit = 0
+        max_v = df_s['Count'].max()
+
+        # Установим высоту и ширину
+        heights = df_s['Count']
+        width = 2 * np.pi / len(df_s.index)
+
+        # Установим индекс и угол
+        indexes = list(range(1, len(df_s.index) + 1))
+        angles = [element * width for element in indexes]
+
+        # Градиент цветов по языкам
+        colors = plt.cm.viridis(np.linspace(0, 1, len(df_s.index)))
+
+        bars = ax.bar(x=angles, height=heights, width=width, bottom=lowerLimit,
+                      linewidth=1, edgecolor="white", color=colors)
+
+        labelPadding = 15
+
+        for bar, angle, height, label in zip(bars, angles, heights, df_s['Language']):
+            rotation = np.rad2deg(angle)
+            alignment = ""
+            # Разберемся с направлением
+            if angle >= np.pi / 2 and angle < 3 * np.pi / 2:
+                alignment = "right"
+                rotation = rotation + 180
+            else:
+                alignment = "left"
+            ax.text(x=angle, y=lowerLimit + bar.get_height() + labelPadding,
+                    s=label, ha=alignment, va='center', rotation=rotation,
+                    rotation_mode="anchor", color='Black')
+            ax.set_thetagrids([], labels=[])
+            
+            ax.text(x=angle, y=lowerLimit + bar.get_height() / 2,
+                    s=height, ha=alignment, va='center', rotation=rotation,
+                    rotation_mode="anchor", color='white')
+
+        radial_chart_pdf_path = os.path.join(reports_dir, 'radial_chart.pdf')
+        plt.savefig(radial_chart_pdf_path, format="pdf", dpi=300, orientation='portrait', bbox_inches='tight')
+
+    # Запись данных из словаря result в файл count.csv
     def write_results_to_file(self, result, languages, total, reports_dir):
         count_csv_path = os.path.join(reports_dir, 'count.csv')
         with open(count_csv_path, 'a') as f:
