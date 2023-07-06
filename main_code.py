@@ -4,6 +4,7 @@ import shutil
 import logging
 import json
 import sqlite3
+import circlify
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
@@ -205,6 +206,30 @@ class CodeLineMeter:
 
         donut_diagram_pdf_path = os.path.join(reports_dir, 'donut_diagram.pdf')
         fig.write_image(donut_diagram_pdf_path, engine="kaleido", format="pdf", width=1920, height=1080, scale=1.25)
+
+
+        circles = circlify.circlify(df['Count'].tolist(), 
+                            show_enclosure=False, 
+                            target_enclosure=circlify.Circle(x=0, y=0)
+                           )
+        circles.reverse()
+
+        fig, ax = plt.subplots(figsize=(14, 14), facecolor='white')
+        ax.axis('off')
+        lim = max(max(abs(circle.x)+circle.r, abs(circle.y)+circle.r,) for circle in circles)
+        plt.xlim(-lim, lim)
+        plt.ylim(-lim, lim)
+
+        # Рисуем круги
+        for circle, label, emi, color in zip(circles, df['Language'], df['Count'], 
+                                             plt.cm.turbo(np.linspace(0, 1, len(df['Language'])))):
+            x, y, r = circle
+            ax.add_patch(plt.Circle((x, y), r, alpha=0.9, color = color))
+            plt.annotate(label +'\n'+ format(emi, ","), (x,y), size=15, va='center', ha='center')
+        plt.xticks([])
+        plt.yticks([])
+        bubble_in_bubble_pdf_path = os.path.join(reports_dir, 'bubble_in_bubble.pdf')
+        plt.savefig(bubble_in_bubble_pdf_path, format="pdf", dpi=300, orientation='portrait', bbox_inches='tight')
 
         # Построение пузырьковой диаграммы
         fig = go.Figure()
