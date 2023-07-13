@@ -6,6 +6,7 @@ import json
 import sqlite3
 import circlify
 import matplotlib.pyplot as plt
+import mplcyberpunk
 import seaborn as sns
 import numpy as np
 import plotly.express as px
@@ -174,6 +175,7 @@ class CodeLineMeter:
         df = pd.DataFrame({'Language': list(temp_filtered.keys()), 'Count': list(temp_filtered.values())})
         df = df.sort_values('Count', ascending=False)
 
+
         # Построение гистограммы
         fig = px.bar(df, x='Language', y='Count', text='Count', color='Language',
                      color_discrete_sequence=px.colors.qualitative.Vivid)
@@ -190,6 +192,21 @@ class CodeLineMeter:
 
         histogram_pdf_path = os.path.join(reports_dir, 'histogram.pdf')
         fig.write_image(histogram_pdf_path, engine="kaleido", format="pdf", width=1920, height=1080, scale=1.25)
+
+
+        # Построение минималистичной гистограммы
+        with plt.style.context('cyberpunk'):
+            ax = df.plot(x='Language', kind='bar', stacked=False, alpha=0.8, figsize=(16,9), legend=False)
+            ax.set_ylim(top=ax.get_ylim()[1] * 1.1)
+            # Вывод значений над каждым столбцом Language
+            for p in ax.patches:
+                ax.annotate(str(p.get_height()), (p.get_x() + p.get_width() / 2, p.get_height()), ha='center', va='bottom', rotation = 30)
+            plt.xticks(range(len(df)), df['Language'], fontsize=10, ha='center')
+            plt.gcf().autofmt_xdate()
+            plt.tight_layout()
+        histogram_minimal_pdf_path = os.path.join(reports_dir, 'histogram_minimal.pdf')
+        plt.savefig(histogram_minimal_pdf_path, format="pdf", dpi=300, orientation='portrait', bbox_inches='tight')
+
 
         # Построение кольцевой диаграммы
         fig = go.Figure()
@@ -208,18 +225,17 @@ class CodeLineMeter:
         fig.write_image(donut_diagram_pdf_path, engine="kaleido", format="pdf", width=1920, height=1080, scale=1.25)
 
 
+        # Построение диаграммы пузырьки в пузыре
         circles = circlify.circlify(df['Count'].tolist(), 
                             show_enclosure=False, 
                             target_enclosure=circlify.Circle(x=0, y=0)
                            )
         circles.reverse()
-
         fig, ax = plt.subplots(figsize=(14, 14), facecolor='white')
         ax.axis('off')
         lim = max(max(abs(circle.x)+circle.r, abs(circle.y)+circle.r,) for circle in circles)
         plt.xlim(-lim, lim)
         plt.ylim(-lim, lim)
-
         # Рисуем круги
         for circle, label, emi, color in zip(circles, df['Language'], df['Count'], 
                                              plt.cm.turbo(np.linspace(0, 1, len(df['Language'])))):
@@ -230,6 +246,7 @@ class CodeLineMeter:
         plt.yticks([])
         bubble_in_bubble_pdf_path = os.path.join(reports_dir, 'bubble_in_bubble.pdf')
         plt.savefig(bubble_in_bubble_pdf_path, format="pdf", dpi=300, orientation='portrait', bbox_inches='tight')
+
 
         # Построение пузырьковой диаграммы
         fig = go.Figure()
@@ -266,65 +283,54 @@ class CodeLineMeter:
         fig.write_image(bubble_chart_pdf_path, engine="kaleido", format="pdf", width=1920, height=1080, scale=1.25)
 
 
-        # Фильтрация колонок содержащих только значения больше 0.05 Max Count
-        new_temp_filtered = {k: v for k, v in temp.items() if v > 0.05 * max(temp.values())}
-        # Создание нового DataFrame
-        df_s = pd.DataFrame({'Language': list(new_temp_filtered.keys()), 'Count': list(new_temp_filtered.values())})
-        # Сортировка DataFrame по алфавиту
-        df_s = df_s.sort_values('Language', ascending=True)
+        # # Фильтрация колонок содержащих только значения больше 0.05 Max Count
+        # new_temp_filtered = {k: v for k, v in temp.items() if v > 0.01 * max(temp.values())}
+        # # Создание нового DataFrame
+        # df_s = pd.DataFrame({'Language': list(new_temp_filtered.keys()), 'Count': list(new_temp_filtered.values())})
+        # # Сортировка DataFrame по алфавиту
+        # df_s = df_s.sort_values('Language', ascending=True)
 
         # Построение Polar диаграммы
-        plt.gcf().set_size_inches(12, 12)
+        plt.gcf().set_size_inches(14, 14)
         sns.set_style('darkgrid')
-
         # Установим максимальное значение
-        max_val = max(df_s['Count'])*1.05
+        max_val = max(df['Count'])*1.10
         ax = plt.subplot(projection='polar')
-
-        for i in range(len(df_s)):
-            ax.barh(i, list(df_s['Count'])[i]*2*np.pi/max_val,
-            label=list(df_s['Language'])[i], color=plt.cm.plasma(i/len(df_s)))
-
+        for i in range(len(df)):
+            ax.barh(i, list(df['Count'])[i]*2*np.pi/max_val,
+            label=list(df['Language'])[i], color=plt.cm.plasma(i/len(df)))
         # Зададим внутренний график
         ax.set_theta_zero_location('N')
         ax.set_theta_direction(1)
-        ax.set_rlabel_position(0)
+        ax.set_rlabel_position(-1)
         ax.set_thetagrids([], labels=[])
-        ax.set_rgrids(range(len(df_s)), labels= df_s['Language'])
-
+        ax.set_rgrids(range(len(df)), labels= df['Count'])
         # Установим проекцию
         ax = plt.subplot(projection='polar')
         plt.legend(bbox_to_anchor=(1, 1), loc=2)
-        
         polar_chart_pdf_path = os.path.join(reports_dir, 'polar_chart.pdf')
         plt.savefig(polar_chart_pdf_path, format="pdf", dpi=300, orientation='portrait', bbox_inches='tight')
+
 
         # Построение Радиальной диаграммы
         plt.figure(figsize=(12, 12))
         ax = plt.subplot(111, polar=True)
         plt.axis()
-
         # Установим минимальное и максимальное значение
         lowerLimit = 0
-        max_v = df_s['Count'].max()
-
+        max_v = df['Count'].max()
         # Установим высоту и ширину
-        heights = df_s['Count']
-        width = 2 * np.pi / len(df_s.index)
-
+        heights = df['Count']
+        width = 2 * np.pi / len(df.index)
         # Установим индекс и угол
-        indexes = list(range(1, len(df_s.index) + 1))
+        indexes = list(range(1, len(df.index) + 1))
         angles = [element * width for element in indexes]
-
         # Градиент цветов по языкам
-        colors = plt.cm.viridis(np.linspace(0, 1, len(df_s.index)))
-
+        colors = plt.cm.viridis(np.linspace(0, 1, len(df.index)))
         bars = ax.bar(x=angles, height=heights, width=width, bottom=lowerLimit,
                       linewidth=1, edgecolor="white", color=colors)
-
         labelPadding = 15
-
-        for bar, angle, height, label in zip(bars, angles, heights, df_s['Language']):
+        for bar, angle, height, label in zip(bars, angles, heights, df['Language']):
             rotation = np.rad2deg(angle)
             alignment = ""
             # Разберемся с направлением
