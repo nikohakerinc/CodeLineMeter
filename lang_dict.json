@@ -389,7 +389,8 @@
         ".xproj",
         ".xsd",
         ".xul",
-        ".zcml"
+        ".zcml",
+        ".svg"
     ],
     "Markdown": [
         ".md",
