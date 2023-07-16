@@ -16,12 +16,14 @@ I. На локальном компьютере
 3. Установить необходимые зависимости:
    
    `pip install python-dotenv`
-   
-   `pip install plotly`
-   
+
    `pip install pandas`
    
-   `pip install kaleido` (на данный момент последняя версия 0.2.1, в случае возникновения проблем необходимо установить версию 0.2.0 выполнив команду `pip install kaleido==0.2.0`)
+   `pip install numpy`
+   
+   `pip install matplotlib`
+   
+   `pip install mplcyberpunk`
 
 4. Переименовать файл **_env.example** в **.env**.
    Изменить **GIT_URL**, **GIT_USERNAME** и **GIT_TOKEN*** на свои данные.

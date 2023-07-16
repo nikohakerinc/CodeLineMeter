@@ -52,7 +52,7 @@ class CodeLineMeter:
 
     # Настройка логирования
     def setup_logging(self):
-        logging.basicConfig(filename=os.path.join(self.log_dir, 'info.log'), level=logging.DEBUG,
+        logging.basicConfig(filename=os.path.join(self.log_dir, 'info.log'), level=logging.INFO,
                             format='%(levelname)s: %(asctime)s %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
 
     # Создаём базу для альтернативного отчёта
