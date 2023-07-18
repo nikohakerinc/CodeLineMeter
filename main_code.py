@@ -8,6 +8,11 @@ import mplcyberpunk
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+from email import encoders
 from dotenv import load_dotenv
 
 
@@ -231,9 +236,57 @@ class CodeLineMeter:
                 project_data = [str(item) for item in row[:-1]]  # Конвертация int to string
                 project_lines = str(row[-1])
                 f.write(f"{';'.join(project_data)};{project_lines}\n")
-            f.write('\n\n')
-            f.write(f"Total lines of code:; {total}")
+            f.write(f"\n\nTotal lines of code:; {total}")
         self.conn.close()
+
+    @staticmethod
+    def pack_and_send_reports():
+        # Создание ZIP архива
+        shutil.make_archive("reports", 'zip', ".", "reports")
+        # Параметры отправки почты
+        from_email = os.getenv('FROM_EMAIL')
+        to_email = os.getenv('TO_EMAIL')
+        password = os.getenv('EMAIL_PASSWORD')
+        smtp_server = os.getenv('SMTP_SERVER')
+        smtp_port = int(os.getenv('SMTP_PORT'))
+
+        # Создание объекта MIMEMultipart
+        message = MIMEMultipart()
+        message['From'] = from_email
+        message['To'] = to_email
+        message['Subject'] = 'Code Line Meter Reports'
+
+        # Вложение ZIP архива
+        attachment = MIMEBase('application', 'zip')
+        with open('reports.zip', 'rb') as file:
+            attachment.set_payload(file.read())
+        encoders.encode_base64(attachment)
+        attachment.add_header('Content-Disposition', 'attachment', filename='reports.zip')
+        message.attach(attachment)
+        message_text = '''Сформирован отчет по количеству строк кода.\nВложенный ZIP архив содержит подробные данные.'''
+        message.attach(MIMEText(message_text, 'plain'))
+
+        # Отправка письма
+        try:
+            with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
+                # server.starttls()
+                server.login(from_email, password)
+                server.send_message(message)
+            logging.info(f"Reports sent to {to_email} is successfull!")
+            print("Reports sent successfully!")
+        except Exception as e:
+            print(f"Error sending reports: {str(e)}")
+            logging.info(f"Error sending reports: {str(e)}")
+            
+    def remove_reports(self, reports_dir):
+        shutil.rmtree(reports_dir, ignore_errors=True)
+        os.system(f"rm -rf {reports_dir} 2> /dev/null")    # Для Linux/Mac
+        os.system(f"rd /s /q {reports_dir} 2> nul")        # Для Windows
+        zip_file = os.path.join(os.getcwd(), "reports.zip")
+        if os.path.exists(zip_file):
+            os.remove(zip_file)
+        logging.info("Reports dir and reports.zip removed successfully!")
+        print("Reports removed successfully!")
 
 
 def main():
@@ -241,7 +294,9 @@ def main():
     result, total_lines = code_stats.analyze_projects()
     code_stats.generate_visualizations(result, code_stats.languages, code_stats.reports_dir)
     code_stats.write_results_to_file(result, code_stats.languages, total_lines, code_stats.reports_dir)
-    # code_stats.write_dbdata_to_file(code_stats.languages, total_lines, code_stats.reports_dir)
+    code_stats.write_dbdata_to_file(code_stats.languages, total_lines, code_stats.reports_dir)
+    CodeLineMeter.pack_and_send_reports()
+    code_stats.remove_reports(code_stats.reports_dir)
     print(f"Total lines of code: {total_lines}")
 
 
