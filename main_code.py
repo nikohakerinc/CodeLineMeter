@@ -8,11 +8,6 @@ import mplcyberpunk
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email.mime.text import MIMEText
-from email import encoders
 from dotenv import load_dotenv
 
 
