@@ -3,7 +3,6 @@ import datetime
 import shutil
 import logging
 import json
-import sqlite3
 import mplcyberpunk
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,18 +17,15 @@ class CodeLineMeter:
     def __init__(self):
         self.languages = self.load_languages()
         self.log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
-        self.reports_dir = 'reports'
+        self.reports_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'reports')
         self.repo_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "repo")
         self.projects = []  # Список проектов
         self.total = 0  # Общий счётчик строк
         self.result = {}  # Словарь с результатами
         self.start_time = None
         self.global_start_time = datetime.datetime.now()
-        self.conn = None
-        self.c = None
         self.create_directories()
         self.setup_logging()
-        self.create_table()
         self.read_projects()
 
     def load_languages(self):
@@ -44,22 +40,6 @@ class CodeLineMeter:
     def setup_logging(self):
         logging.basicConfig(filename=os.path.join(self.log_dir, 'info.log'), level=logging.INFO,
                             format='%(levelname)s: %(asctime)s %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
-
-    def create_table(self):
-        if not self.conn:
-            self.conn = sqlite3.connect(os.path.join(self.reports_dir, 'code_stats.db'))
-            self.c = self.conn.cursor()
-
-            create_table_sql = '''
-                CREATE TABLE IF NOT EXISTS projects (
-                    project_url TEXT,
-                    project_name TEXT,
-            '''
-            for lang, extensions in self.languages.items():
-                lang_col_name = lang.lower().replace(' ', '')
-                create_table_sql += f'"{lang_col_name}" INTEGER, '
-            create_table_sql += 'total_lines INTEGER)'
-            self.c.execute(create_table_sql)
 
     def read_projects(self):
         with open('project.txt', 'r') as f:
@@ -96,28 +76,14 @@ class CodeLineMeter:
                             logging.warning(f"Failed to read file: {file_path}")
 
         result[repo_url] = (project_dir,) + tuple(language_lines.values()) + (total_lines,)
-        self.write_to_database(repo_url, project_dir, language_lines, total_lines)
 
         shutil.rmtree(repo_dir, ignore_errors=True)
         if os.name == 'nt':
-            os.system(f"rd /s /q {repo_dir} 2> nul")
+            os.system(f"rd /s /q {repo_dir}")
         else:
-            os.system(f"rm -rf {repo_dir} 2> /dev/null")
+            os.system(f"rm -rf {repo_dir}")
                 
         return result, total_lines
-
-    def write_to_database(self, repo_url, project_dir, language_lines, total_lines):
-        if not self.conn:
-            self.conn = sqlite3.connect(os.path.join(self.reports_dir, 'code_stats.db'))
-            self.c = self.conn.cursor()
-
-        placeholders = ', '.join(['?' for _ in range(len(self.languages.keys()) + 3)])
-        insert_values = '''INSERT INTO projects VALUES ('''
-        insert_values += placeholders
-        insert_values += ')'
-        values = (repo_url, project_dir) + tuple(language_lines.values()) + (total_lines,)
-        self.c.execute(insert_values, values)
-        self.conn.commit()
 
     def analyze_projects(self):
         line_count = len(self.projects)
@@ -189,27 +155,11 @@ class CodeLineMeter:
             f.write('\n\n')
             f.write(f"Total lines of code:; {total}")
 
-    def write_dbdata_to_file(self, languages, total, reports_dir):
-        if not self.conn:
-            self.conn = sqlite3.connect(os.path.join(self.reports_dir, 'code_stats.db'))
-            self.c = self.conn.cursor()
-
-        with open(os.path.join(reports_dir, 'countdb.csv'), 'w') as f:
-            keys = ";".join(languages.keys())
-            f.write(f"Project URL;Project Name;{keys};Total lines of code\n")
-            for row in self.c.execute("SELECT * FROM projects"):
-                project_data = [str(item) for item in row[:-1]]
-                project_lines = str(row[-1])
-                f.write(f"{';'.join(project_data)};{project_lines}\n")
-            f.write(f"\n\nTotal lines of code:; {total}")
-        self.conn.close()
-
 
     def run(self):
         result, total_lines = self.analyze_projects()
         self.generate_visualizations(result, self.languages, self.reports_dir)
         self.write_results_to_file(result, self.languages, total_lines, self.reports_dir)
-        self.write_dbdata_to_file(self.languages, total_lines, self.reports_dir)
         print(f"Total lines of code: {total_lines}")
 
 
