@@ -28,23 +28,28 @@ class CodeLineMeter:
         self.setup_logging()
         self.read_projects()
 
+    # Загрузка списка ЯП с расширениями их файлов из JSON
     def load_languages(self):
         with open('lang_dict.json', 'r') as json_file:
             return json.load(json_file)
 
+    # Создание рабочих директорий
     def create_directories(self):
         os.makedirs(self.log_dir, exist_ok=True)
         os.makedirs(self.reports_dir, exist_ok=True)
         os.makedirs(self.repo_folder, exist_ok=True)
 
+    # Настройка уровня логирования
     def setup_logging(self):
         logging.basicConfig(filename=os.path.join(self.log_dir, 'info.log'), level=logging.INFO,
                             format='%(levelname)s: %(asctime)s %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
 
+    # Чтение списка проектов из файла project.txt
     def read_projects(self):
         with open('project.txt', 'r') as f:
             self.projects = [project.strip() for project in f if project.strip()]
 
+    # Клонирование репозитория GIT на локальную машину и подсчёт строк кода
     def clone_repository(self, project, i, line_count):
         result = {}
         repo_url = project.strip().replace("https://", "")
@@ -105,17 +110,21 @@ class CodeLineMeter:
         
         return self.result, self.total
 
+    # Построение отчётности
     def generate_visualizations(self, result, languages, reports_dir):
+        # Создание словаря temp на основе languages
         temp = {key: 0 for key in languages}
         for values in result.values():
             language_lines = values[1:-1]
             for language, lines in zip(temp.keys(), language_lines):
                 temp[language] += lines
 
+        # Сортировка от большего к меньшему исключая нулевые значения
         temp_filtered = {k: v for k, v in temp.items() if v != 0}
         df = pd.DataFrame({'Language': list(temp_filtered.keys()), 'Count': list(temp_filtered.values())})
         df = df.sort_values('Count', ascending=False)
 
+        # Построение гистограммы
         with plt.style.context('cyberpunk'):
             ax = df.plot(x='Language', kind='bar', stacked=False, alpha=0.8, figsize=(16,9), legend=False)
             ax.set_ylim(top=ax.get_ylim()[1] * 1.1)
@@ -128,6 +137,7 @@ class CodeLineMeter:
         histogram_chart_pdf_path = os.path.join(reports_dir, 'histogram_chart.pdf')
         plt.savefig(histogram_chart_pdf_path, format="pdf", dpi=300, orientation='portrait', bbox_inches='tight')
 
+        # Построение кольцевой диаграммы
         with plt.style.context('cyberpunk'):
             labels = [f"{lang} ({count})" for lang, count in zip(df['Language'], df['Count'])]
             sizes = df['Count']
@@ -144,6 +154,7 @@ class CodeLineMeter:
         donat_chart_pdf_path = os.path.join(reports_dir, 'donat_chart.pdf')
         plt.savefig(donat_chart_pdf_path, format="pdf", dpi=300, orientation='portrait', bbox_inches='tight')
 
+    # Запись словаря result в файл count.csv
     def write_results_to_file(self, result, languages, total, reports_dir):
         count_csv_path = os.path.join(reports_dir, 'count.csv')
         with open(count_csv_path, 'a') as f:
