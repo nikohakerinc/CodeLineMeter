@@ -139,13 +139,13 @@ class CodeLineMeter:
 
         # Построение кольцевой диаграммы
         with plt.style.context('cyberpunk'):
-            labels = [f"{lang} ({count})" for lang, count in zip(df['Language'], df['Count'])]
             sizes = df['Count']
+            labels = [f"{lang} ({count})" if count / sum(sizes) >= 0.015 else '' for lang, count in zip(df['Language'], sizes)]
             explode = (0.1,) * len(df)
             colors = plt.cm.plasma(np.linspace(0.2, 1, len(df['Language'])))
             fig, ax = plt.subplots(figsize=(16, 9))
             wedges, labels, text_handles = ax.pie(sizes, explode=explode, labels=labels, colors=colors,
-                                                  autopct=lambda pct: f"{pct:.1f}%" if pct > 2.0 else None, shadow=True,
+                                                  autopct=lambda pct: f"{pct:.1f}%" if pct > 1.5 else None, shadow=True,
                                                   startangle=45, wedgeprops=dict(width=0.5), rotatelabels=True, pctdistance=0.75)
             for label, text_handle in zip(labels, text_handles):
                 if label.get_text() == '':
