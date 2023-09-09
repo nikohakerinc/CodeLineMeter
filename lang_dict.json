@@ -141,6 +141,17 @@
         "go.sum",
         "_test.go"
     ],
+    "R": [
+        ".r",
+        ".rd",
+        ".rsx",
+        ".rdata",
+        ".rda",
+        ".rds"
+    ],
+    "Julia":[
+        ".jl"
+    ],
     "Rust": [
         ".rs",
         ".rs.in"
@@ -217,25 +228,6 @@
         ".psgi",
         ".t"
     ],
-    "HTML": [
-        ".html",
-        ".rhtml",
-        ".htm",
-        ".html.hl",
-        ".inc",
-        ".st",
-        ".xht",
-        ".xhtml",
-        ".mustache",
-        ".jinja",
-        ".eex",
-        ".phtml"
-    ],
-    "CSS": [
-        ".css",
-        ".mss",
-        ".scss"
-    ],
     "Basic": [
         ".bb",
         ".decls",
@@ -256,6 +248,9 @@
         ".vbhtml",
         ".vbs"
     ],
+    "AutoIt": [
+        ".au3"
+    ],
     "Pascal/Delphi": [
         ".pas",
         ".dfm",
@@ -270,6 +265,15 @@
         ".cp",
         ".cps"
     ],
+    "Scratch": [
+        ".scratch",
+        ".sb",
+        ".sprite",
+        ".sb2",
+        ".sprite2",
+        ".sb3",
+        ".sprite3"
+    ],
     "FORTRAN": [
         ".f90",
         ".f",
@@ -280,7 +284,7 @@
         ".for",
         ".fpp"
     ],
-    "Kobol": [
+    "Cobol": [
         ".cob",
         ".cbl",
         ".ccp",
@@ -392,6 +396,25 @@
         ".zcml",
         ".svg"
     ],
+    "HTML": [
+        ".html",
+        ".rhtml",
+        ".htm",
+        ".html.hl",
+        ".inc",
+        ".st",
+        ".xht",
+        ".xhtml",
+        ".mustache",
+        ".jinja",
+        ".eex",
+        ".phtml"
+    ],
+    "CSS": [
+        ".css",
+        ".mss",
+        ".scss"
+    ],
     "Markdown": [
         ".md",
         ".rmd",
@@ -471,7 +494,6 @@
         ".nasm",
         ".ahk",
         ".ahkl",
-        ".au3",
         ".awk",
         ".auk",
         ".gawk",
@@ -663,7 +685,6 @@
         ".jsx",
         ".jade",
         ".j",
-        ".jl",
         ".ipynb",
         ".krl",
         ".sch",
@@ -833,9 +854,6 @@
         ".qbs",
         ".pro",
         ".pri",
-        ".r",
-        ".rd",
-        ".rsx",
         ".raml",
         ".rdoc",
         ".rkt",
