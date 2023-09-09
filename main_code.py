@@ -3,7 +3,6 @@ import datetime
 import shutil
 import logging
 import json
-import sqlite3
 import mplcyberpunk
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,53 +17,39 @@ class CodeLineMeter:
     def __init__(self):
         self.languages = self.load_languages()
         self.log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
-        self.reports_dir = 'reports'
+        self.reports_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'reports')
         self.repo_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "repo")
         self.projects = []  # Список проектов
         self.total = 0  # Общий счётчик строк
         self.result = {}  # Словарь с результатами
         self.start_time = None
         self.global_start_time = datetime.datetime.now()
-        self.conn = None
-        self.c = None
         self.create_directories()
         self.setup_logging()
-        self.create_table()
         self.read_projects()
 
+    # Загрузка списка ЯП с расширениями их файлов из JSON
     def load_languages(self):
         with open('lang_dict.json', 'r') as json_file:
             return json.load(json_file)
 
+    # Создание рабочих директорий
     def create_directories(self):
         os.makedirs(self.log_dir, exist_ok=True)
         os.makedirs(self.reports_dir, exist_ok=True)
         os.makedirs(self.repo_folder, exist_ok=True)
 
+    # Настройка уровня логирования
     def setup_logging(self):
         logging.basicConfig(filename=os.path.join(self.log_dir, 'info.log'), level=logging.INFO,
                             format='%(levelname)s: %(asctime)s %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
 
-    def create_table(self):
-        if not self.conn:
-            self.conn = sqlite3.connect(os.path.join(self.reports_dir, 'code_stats.db'))
-            self.c = self.conn.cursor()
-
-            create_table_sql = '''
-                CREATE TABLE IF NOT EXISTS projects (
-                    project_url TEXT,
-                    project_name TEXT,
-            '''
-            for lang, extensions in self.languages.items():
-                lang_col_name = lang.lower().replace(' ', '')
-                create_table_sql += f'"{lang_col_name}" INTEGER, '
-            create_table_sql += 'total_lines INTEGER)'
-            self.c.execute(create_table_sql)
-
+    # Чтение списка проектов из файла project.txt
     def read_projects(self):
         with open('project.txt', 'r') as f:
             self.projects = [project.strip() for project in f if project.strip()]
 
+    # Клонирование репозитория GIT на локальную машину и подсчёт строк кода
     def clone_repository(self, project, i, line_count):
         result = {}
         repo_url = project.strip().replace("https://", "")
@@ -96,28 +81,14 @@ class CodeLineMeter:
                             logging.warning(f"Failed to read file: {file_path}")
 
         result[repo_url] = (project_dir,) + tuple(language_lines.values()) + (total_lines,)
-        self.write_to_database(repo_url, project_dir, language_lines, total_lines)
 
         shutil.rmtree(repo_dir, ignore_errors=True)
         if os.name == 'nt':
-            os.system(f"rd /s /q {repo_dir} 2> nul")
+            os.system(f"rd /s /q {repo_dir}")
         else:
-            os.system(f"rm -rf {repo_dir} 2> /dev/null")
+            os.system(f"rm -rf {repo_dir}")
                 
         return result, total_lines
-
-    def write_to_database(self, repo_url, project_dir, language_lines, total_lines):
-        if not self.conn:
-            self.conn = sqlite3.connect(os.path.join(self.reports_dir, 'code_stats.db'))
-            self.c = self.conn.cursor()
-
-        placeholders = ', '.join(['?' for _ in range(len(self.languages.keys()) + 3)])
-        insert_values = '''INSERT INTO projects VALUES ('''
-        insert_values += placeholders
-        insert_values += ')'
-        values = (repo_url, project_dir) + tuple(language_lines.values()) + (total_lines,)
-        self.c.execute(insert_values, values)
-        self.conn.commit()
 
     def analyze_projects(self):
         line_count = len(self.projects)
@@ -139,17 +110,21 @@ class CodeLineMeter:
         
         return self.result, self.total
 
+    # Построение отчётности
     def generate_visualizations(self, result, languages, reports_dir):
+        # Создание словаря temp на основе languages
         temp = {key: 0 for key in languages}
         for values in result.values():
             language_lines = values[1:-1]
             for language, lines in zip(temp.keys(), language_lines):
                 temp[language] += lines
 
+        # Сортировка от большего к меньшему исключая нулевые значения
         temp_filtered = {k: v for k, v in temp.items() if v != 0}
         df = pd.DataFrame({'Language': list(temp_filtered.keys()), 'Count': list(temp_filtered.values())})
         df = df.sort_values('Count', ascending=False)
 
+        # Построение гистограммы
         with plt.style.context('cyberpunk'):
             ax = df.plot(x='Language', kind='bar', stacked=False, alpha=0.8, figsize=(16,9), legend=False)
             ax.set_ylim(top=ax.get_ylim()[1] * 1.1)
@@ -162,14 +137,15 @@ class CodeLineMeter:
         histogram_chart_pdf_path = os.path.join(reports_dir, 'histogram_chart.pdf')
         plt.savefig(histogram_chart_pdf_path, format="pdf", dpi=300, orientation='portrait', bbox_inches='tight')
 
+        # Построение кольцевой диаграммы
         with plt.style.context('cyberpunk'):
-            labels = [f"{lang} ({count})" for lang, count in zip(df['Language'], df['Count'])]
             sizes = df['Count']
+            labels = [f"{lang} ({count})" if count / sum(sizes) >= 0.015 else '' for lang, count in zip(df['Language'], sizes)]
             explode = (0.1,) * len(df)
             colors = plt.cm.plasma(np.linspace(0.2, 1, len(df['Language'])))
             fig, ax = plt.subplots(figsize=(16, 9))
             wedges, labels, text_handles = ax.pie(sizes, explode=explode, labels=labels, colors=colors,
-                                                  autopct=lambda pct: f"{pct:.1f}%" if pct > 2.0 else None, shadow=True,
+                                                  autopct=lambda pct: f"{pct:.1f}%" if pct > 1.5 else None, shadow=True,
                                                   startangle=45, wedgeprops=dict(width=0.5), rotatelabels=True, pctdistance=0.75)
             for label, text_handle in zip(labels, text_handles):
                 if label.get_text() == '':
@@ -178,6 +154,7 @@ class CodeLineMeter:
         donat_chart_pdf_path = os.path.join(reports_dir, 'donat_chart.pdf')
         plt.savefig(donat_chart_pdf_path, format="pdf", dpi=300, orientation='portrait', bbox_inches='tight')
 
+    # Запись словаря result в файл count.csv
     def write_results_to_file(self, result, languages, total, reports_dir):
         count_csv_path = os.path.join(reports_dir, 'count.csv')
         with open(count_csv_path, 'a') as f:
@@ -189,27 +166,11 @@ class CodeLineMeter:
             f.write('\n\n')
             f.write(f"Total lines of code:; {total}")
 
-    def write_dbdata_to_file(self, languages, total, reports_dir):
-        if not self.conn:
-            self.conn = sqlite3.connect(os.path.join(self.reports_dir, 'code_stats.db'))
-            self.c = self.conn.cursor()
-
-        with open(os.path.join(reports_dir, 'countdb.csv'), 'w') as f:
-            keys = ";".join(languages.keys())
-            f.write(f"Project URL;Project Name;{keys};Total lines of code\n")
-            for row in self.c.execute("SELECT * FROM projects"):
-                project_data = [str(item) for item in row[:-1]]
-                project_lines = str(row[-1])
-                f.write(f"{';'.join(project_data)};{project_lines}\n")
-            f.write(f"\n\nTotal lines of code:; {total}")
-        self.conn.close()
-
 
     def run(self):
         result, total_lines = self.analyze_projects()
         self.generate_visualizations(result, self.languages, self.reports_dir)
         self.write_results_to_file(result, self.languages, total_lines, self.reports_dir)
-        self.write_dbdata_to_file(self.languages, total_lines, self.reports_dir)
         print(f"Total lines of code: {total_lines}")
 
 
