@@ -2,8 +2,6 @@
     "Python": [
         ".py",
         ".bzl",
-        ".cgi",
-        ".fcgi",
         ".gyp",
         ".lmi",
         ".pyde",
@@ -18,7 +16,10 @@
     ],
     "Java": [
         ".java",
-        ".jsp"
+        ".jsp",
+        ".class",
+        ".jar",
+        ".jmod"
     ],
     "C": [
         ".c",
@@ -33,29 +34,25 @@
         ".cc",
         ".cp",
         ".cxx",
-        ".h",
         ".h++",
         ".hh",
         ".hpp",
         ".hxx",
-        ".inc",
         ".inl",
         ".ipp",
         ".tcc",
         ".tpp"
-    ],
-    "Objective-C/C++/J": [
-        ".m",
-        ".h",
-        ".mm",
-        "j",
-        ".sj"
     ],
     "C#": [
         ".cs",
         ".cake",
         ".cshtml",
         ".csx"
+    ],
+    "Objective-C/C++": [
+        ".m",
+        ".mm",
+        ".M"
     ],
     "JavaScript": [
         ".js",
@@ -92,12 +89,14 @@
         ".xsjs",
         ".xsjslib"
     ],
+    "Objective-J": [
+        "j",
+        ".sj"
+    ],
     "PHP": [
         ".php",
         ".aw",
         ".ctp",
-        ".fcgi",
-        ".inc",
         ".php3",
         ".php4",
         ".php5",
@@ -107,7 +106,6 @@
     "Ruby": [
         ".rb",
         ".builder",
-        ".fcgi",
         ".gemspec",
         ".god",
         ".irbrc",
@@ -149,6 +147,9 @@
         ".rda",
         ".rds"
     ],
+    "Arduino": [
+        ".ino"
+    ],
     "Julia":[
         ".jl"
     ],
@@ -185,7 +186,6 @@
         ".sql",
         ".cql",
         ".ddl",
-        ".inc",
         ".prc",
         ".tab",
         ".udf",
@@ -196,9 +196,7 @@
         ".sh",
         ".bash",
         ".bats",
-        ".cgi",
         ".command",
-        ".fcgi",
         ".ksh",
         ".sh.in",
         ".tmux",
@@ -209,7 +207,13 @@
     "PowerShell": [
         ".ps1",
         ".psd1",
-        ".psm1"
+        ".psm1",
+        ".ps1xml",
+        ".psc1",
+        ".psd1",
+        ".pssc",
+        ".psrc",
+        ".cdxml"
     ],
     "Batch": [
         ".bat",
@@ -259,10 +263,8 @@
         ".dproj",
         ".fmx",
         ".bpl",
-        ".inc",
         ".lpr",
         ".pp",
-        ".cp",
         ".cps"
     ],
     "Scratch": [
@@ -273,6 +275,12 @@
         ".sprite2",
         ".sb3",
         ".sprite3"
+    ],
+    "Assembly language": [
+        ".asm",
+        ".s",
+        ".wla",
+        ".SRC"
     ],
     "FORTRAN": [
         ".f90",
@@ -297,6 +305,17 @@
         ".gtpl",
         ".gvy",
         ".gsp"
+    ],
+    "Ada": [
+        ".ada",
+        ".adb",
+        ".ads"
+    ],
+    "F#": [
+        ".fs",
+        ".fsi",
+        ".fsx",
+        ".fsscript"
     ],
     "JSON": [
         ".json",
@@ -351,9 +370,7 @@
         ".odd",
         ".osm",
         ".plist",
-        ".pluginspec",
         ".props",
-        ".ps1xml",
         ".psc1",
         ".pt",
         ".rdf",
@@ -401,7 +418,6 @@
         ".rhtml",
         ".htm",
         ".html.hl",
-        ".inc",
         ".st",
         ".xht",
         ".xhtml",
@@ -483,14 +499,11 @@
         ".ashx",
         ".asmx",
         ".aspx",
-        ".ads",
         ".agda",
         ".als",
         ".scpt",
         ".arc",
         ".aj",
-        ".asm",
-        ".inc",
         ".nasm",
         ".ahk",
         ".ahkl",
@@ -534,7 +547,6 @@
         ".hic",
         ".coffee",
         "._coffee",
-        ".cake",
         ".cjsx",
         ".cson",
         ".iced",
@@ -544,7 +556,6 @@
         ".lisp",
         ".asd",
         ".cl",
-        ".l",
         ".lsp",
         ".ny",
         ".podsl",
@@ -588,27 +599,20 @@
         ".em",
         ".emberscript",
         ".erl",
-        ".es",
         ".escript",
         ".hrl",
         ".xrl",
         ".yrl",
-        ".fs",
-        ".fsi",
-        ".fsx",
         ".factor",
         ".fy",
         ".fancypack",
         ".fan",
-        ".fs",
         ".fth",
         ".4th",
-        ".f",
         ".for",
         ".forth",
         ".fr",
         ".frt",
-        ".fs",
         ".ftl",
         ".fr",
         ".gms",
@@ -617,14 +621,11 @@
         ".gd",
         ".gi",
         ".tst",
-        ".s",
         ".ms",
         ".gd",
         ".glsl",
         ".fp",
-        ".frag",
         ".frg",
-        ".fs",
         ".fsh",
         ".fshader",
         ".geo",
@@ -647,7 +648,6 @@
         ".plot",
         ".plt",
         ".golo",
-        ".gs",
         ".gst",
         ".gsx",
         ".vark",
@@ -660,7 +660,6 @@
         ".fx",
         ".fxh",
         ".hlsli",
-        ".hh",
         ".hb",
         ".hs",
         ".lhs",
@@ -682,7 +681,6 @@
         ".ijs",
         ".flex",
         ".jflex",
-        ".jsx",
         ".jade",
         ".j",
         ".ipynb",
@@ -710,7 +708,6 @@
         ".lex",
         ".ly",
         ".ily",
-        ".b",
         ".liquid",
         ".lagda",
         ".litcoffee",
@@ -724,7 +721,6 @@
         ".logtalk",
         ".lookml",
         ".ls",
-        ".fcgi",
         ".nse",
         ".pd_lua",
         ".rbxs",
@@ -736,7 +732,6 @@
         ".mtml",
         ".muf",
         ".mak",
-        ".d",
         ".mk",
         ".mkfile",
         ".mako",
@@ -828,7 +823,6 @@
         ".pm",
         ".pm6",
         ".pkl",
-        ".l",
         ".pig",
         ".pike",
         ".pmod",
@@ -955,7 +949,6 @@
         ".vhw",
         ".vala",
         ".vapi",
-        ".v",
         ".veo",
         ".vim",
         ".volt",
