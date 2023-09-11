@@ -56,7 +56,6 @@
     ],
     "JavaScript": [
         ".js",
-        ".mjs",
         ".jsx",
         "._js",
         ".bones",
@@ -69,8 +68,11 @@
         ".jsfl",
         ".jsm",
         ".jss",
+        ".mjs",
         ".njs",
+        ".nvmrc",
         ".pac",
+        ".rjs",
         ".sjs",
         ".ssjs",
         ".sublime-build",
@@ -86,12 +88,9 @@
         ".sublime-workspace",
         ".sublime_metrics",
         ".sublime_session",
+        ".vue",
         ".xsjs",
         ".xsjslib"
-    ],
-    "Objective-J": [
-        "j",
-        ".sj"
     ],
     "PHP": [
         ".php",
@@ -139,14 +138,6 @@
         "go.sum",
         "_test.go"
     ],
-    "R": [
-        ".r",
-        ".rd",
-        ".rsx",
-        ".rdata",
-        ".rda",
-        ".rds"
-    ],
     "Arduino": [
         ".ino"
     ],
@@ -191,6 +182,9 @@
         ".udf",
         ".viw",
         ".db2"
+    ],
+    "GraphQL": [
+        ".graphql"
     ],
     "Shell": [
         ".sh",
@@ -309,12 +303,6 @@
         ".ada",
         ".adb",
         ".ads"
-    ],
-    "F#": [
-        ".fs",
-        ".fsi",
-        ".fsx",
-        ".fsscript"
     ],
     "JSON": [
         ".json",
@@ -441,6 +429,7 @@
         ".txt",
         ".doc",
         ".docx",
+        ".rtf",
         ".fr",
         ".nb",
         ".ncl",
@@ -480,12 +469,13 @@
         ".ini",
         ".prefs",
         ".pro",
+        ".toml",
         ".properties",
         ".nginxconf",
-        ".vhost",
-        ".lock"
+        ".vhost"
     ],
     "Other Lang": [
+        ".example",
         ".mod",
         ".g4",
         ".apib",
@@ -572,7 +562,6 @@
         ".com",
         ".dm",
         ".diff",
-        ".patch",
         ".djs",
         ".dylan",
         ".dyl",
@@ -647,8 +636,13 @@
         ".hcl",
         ".tf",
         ".hlsl",
+        ".fs",
+        ".fsi",
+        ".fsx",
+        ".fsscript",
         ".fx",
         ".fxh",
+        ".fex",
         ".hlsli",
         ".hb",
         ".hs",
@@ -671,10 +665,13 @@
         ".jflex",
         ".jade",
         ".j",
+        ".sj",
         ".ipynb",
         ".krl",
         ".kicad_pcb",
         ".kit",
+        ".key",
+        ".lock",
         ".lfe",
         ".ll",
         ".lol",
@@ -815,6 +812,12 @@
         ".qml",
         ".qbs",
         ".pri",
+        ".r",
+        ".rd",
+        ".rsx",
+        ".rdata",
+        ".rda",
+        ".rds",
         ".raml",
         ".rdoc",
         ".rkt",
@@ -913,7 +916,6 @@
         ".veo",
         ".vim",
         ".volt",
-        ".vue",
         ".owl",
         ".webidl",
         ".x10",
