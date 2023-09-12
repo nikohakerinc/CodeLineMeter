@@ -304,6 +304,14 @@
         ".adb",
         ".ads"
     ],
+    "R": [
+        ".r",
+        ".rd",
+        ".rsx",
+        ".rdata",
+        ".rda",
+        ".rds"
+    ],
     "JSON": [
         ".json",
         ".geojson",
@@ -473,6 +481,9 @@
         ".properties",
         ".nginxconf",
         ".vhost"
+    ],
+    "Patch files": [
+        ".patch"
     ],
     "Other Lang": [
         ".example",
@@ -812,12 +823,6 @@
         ".qml",
         ".qbs",
         ".pri",
-        ".r",
-        ".rd",
-        ".rsx",
-        ".rdata",
-        ".rda",
-        ".rds",
         ".raml",
         ".rdoc",
         ".rkt",
