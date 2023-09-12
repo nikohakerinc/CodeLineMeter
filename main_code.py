@@ -5,6 +5,7 @@ import logging
 import json
 import mplcyberpunk
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
@@ -111,13 +112,33 @@ class CodeLineMeter:
         return self.result, self.total
 
     # Построение отчётности
-    def generate_visualizations(self, result, languages, reports_dir):
+    def generate_visualizations(self, result, total_lines, languages, reports_dir):
         # Создание словаря temp на основе languages
         temp = {key: 0 for key in languages}
+        text_value = 0
+        other_value = 0
+        md_value = 0
+
         for values in result.values():
             language_lines = values[1:-1]
             for language, lines in zip(temp.keys(), language_lines):
                 temp[language] += lines
+
+        # Проверяем наличие ключей и извлекаем их значения
+        if "Markdown" in temp:
+            md_value = temp["Markdown"]
+            del temp["Markdown"]
+        if "Any Text" in temp:
+            text_value = temp["Any Text"]
+            del temp["Any Text"]
+        if "Other Lang" in temp:
+            other_value = temp["Other Lang"]
+            del temp["Other Lang"]
+        if "Patch files" in temp:
+            patch_value = temp["Patch files"]
+            del temp["Patch files"]
+
+        programm_value = total_lines - text_value - patch_value - md_value
 
         # Сортировка от большего к меньшему исключая нулевые значения
         temp_filtered = {k: v for k, v in temp.items() if v != 0}
@@ -126,13 +147,23 @@ class CodeLineMeter:
 
         # Построение гистограммы
         with plt.style.context('cyberpunk'):
-            ax = df.plot(x='Language', kind='bar', stacked=False, alpha=0.8, figsize=(16,9), legend=False)
+            ax = df.plot(x='Language', kind='bar', stacked=False, alpha=0.8, figsize=(16, 9), legend=False)
             ax.set_ylim(top=ax.get_ylim()[1] * 1.1)
             for p in ax.patches:
                 ax.annotate(str(p.get_height()), (p.get_x() + p.get_width() / 2, p.get_height()),
                             ha='center', va='bottom', rotation=30)
             plt.xticks(range(len(df)), df['Language'], fontsize=10, ha='center')
             plt.gcf().autofmt_xdate()
+
+            # Добавление легенды с текстовыми метками
+            legend_elements = [
+                Line2D([0], [0], color='r', lw=10, label=f'Total Lines: {total_lines}'),
+                Line2D([0], [0], color='c', lw=10, label=f'Program Code: {programm_value}'),
+                Line2D([0], [0], color='b', lw=10, label=f'Markdown Lines: {md_value}'),
+                Line2D([0], [0], color='g', lw=10, label=f'Any Text Lines: {text_value}'),
+                Line2D([0], [0], color='m', lw=10, label=f'Other Lang Code: {other_value}')
+            ]
+            ax.legend(handles=legend_elements, loc='upper right')
             plt.tight_layout()
         histogram_chart_pdf_path = os.path.join(reports_dir, 'histogram_chart.pdf')
         plt.savefig(histogram_chart_pdf_path, format="pdf", dpi=300, orientation='portrait', bbox_inches='tight')
@@ -169,8 +200,8 @@ class CodeLineMeter:
 
     def run(self):
         result, total_lines = self.analyze_projects()
-        self.generate_visualizations(result, self.languages, self.reports_dir)
         self.write_results_to_file(result, self.languages, total_lines, self.reports_dir)
+        self.generate_visualizations(result, total_lines, self.languages, self.reports_dir)
         print(f"Total lines of code: {total_lines}")
 
 
