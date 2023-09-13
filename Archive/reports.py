@@ -61,15 +61,30 @@ class CodeLineMeter:
         # Построение гистограммы
         fig = px.bar(df, x='Language', y='Count', text='Count', color='Language',
                      color_discrete_sequence=px.colors.qualitative.Vivid)
-        fig.update_traces(texttemplate='%{text:.4s}', textposition='outside')
+        fig.update_traces(texttemplate='%{text}', textposition='outside', textangle=-30, textfont=dict(size=16))
+        annotations = []
         fig.update_layout(
             plot_bgcolor='white', paper_bgcolor='white',
             width=1600, height=900, margin=dict(t=15, l=15, r=15, b=15),
-            xaxis_title='Языки программирования',
-            yaxis_title='Количество строк кода',
-            xaxis=dict(title_font=dict(size=25), tickfont=dict(size=16)),
-            yaxis=dict(title_font=dict(size=25), tickfont=dict(size=16)),
-            legend=dict(font=dict(size=18))
+            xaxis_title='Programming languages',
+            yaxis_title='Total rows',
+            xaxis=dict(title_font=dict(size=25), tickfont=dict(size=16), tickangle=-30),
+            yaxis=dict(title_font=dict(size=25), tickfont=dict(size=16), linewidth=1),
+            annotations=annotations,
+            showlegend=False
+        )
+        fig.add_annotation(
+            text=f'<b>Total Lines: <span style="color: red;">{total_lines}</span></b><br>'
+                f'<b>Program Code: <span style="color: blue;">{programm_value}</span></b><br>'
+                f'<b>Markdown Lines: <span style="color: green;">{md_value}</span></b><br>'
+                f'<b>Any Text Lines: <span style="color: orange;">{text_value}</span></b><br>'
+                f'<b>Other Code Lines: <span style="color: purple;">{other_value}</span></b>',
+            xref='paper', yref='paper',
+            x=0.9, y=0.97,
+            showarrow=False,
+            font=dict(size=20),
+            align='left',
+            bgcolor='white'
         )
 
         histogram_pdf_path = os.path.join(reports_dir, 'histogram.pdf')
