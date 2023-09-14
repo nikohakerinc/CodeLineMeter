@@ -94,6 +94,9 @@
     ],
     "PHP": [
         ".php",
+        ".phar",
+        ".phtml",
+        ".pht",
         ".aw",
         ".ctp",
         ".php3",
@@ -312,6 +315,43 @@
         ".rda",
         ".rds"
     ],
+    "Erlang":[
+        ".erl"
+    ],
+    "Dart":[
+        ".dart"
+    ],
+    "Haskell":[
+        ".hs",
+        ".lhs"
+    ],
+    "PostScript":[
+        ".ps"
+    ],
+    "CoffeeScript":[
+        ".coffee",
+        "._coffee",
+        ".litcoffee"
+    ],
+    "Racket":[
+        ".rkt"
+    ],
+    "D":[
+        ".d",
+        ".dd",
+        ".di",
+        ".def"
+    ],
+    "Tcl":[
+        ".tcl"
+    ],
+    "Clojure":[
+        ".clj",
+        ".cljs",
+        ".cljc",
+        ".cljr",
+        ".edn"
+    ],
     "JSON": [
         ".json",
         ".geojson",
@@ -324,7 +364,7 @@
         ".yml",
         ".reek",
         ".rviz",
-        ".sublime-syntax",
+        ".sublimesyntax",
         ".syntax",
         ".yaml",
         ".yaml-tmlanguage"
@@ -416,8 +456,7 @@
         ".xhtml",
         ".mustache",
         ".jinja",
-        ".eex",
-        ".phtml"
+        ".eex"
     ],
     "CSS": [
         ".css",
@@ -532,18 +571,12 @@
         ".icl",
         ".dcl",
         ".click",
-        ".clj",
         ".boot",
         ".cl2",
-        ".cljc",
-        ".cljs",
-        ".cljr",
         ".cljs.hl",
         ".cljscm",
         ".cljx",
         ".hic",
-        ".coffee",
-        "._coffee",
         ".cjsx",
         ".cson",
         ".iced",
@@ -567,9 +600,6 @@
         ".pyx",
         ".pxd",
         ".pxi",
-        ".d",
-        ".di",
-        ".dart",
         ".com",
         ".dm",
         ".diff",
@@ -593,7 +623,6 @@
         ".emacs.desktop",
         ".em",
         ".emberscript",
-        ".erl",
         ".escript",
         ".hrl",
         ".xrl",
@@ -656,8 +685,6 @@
         ".fex",
         ".hlsli",
         ".hb",
-        ".hs",
-        ".lhs",
         ".hsc",
         ".hx",
         ".hxsl",
@@ -704,7 +731,6 @@
         ".ily",
         ".liquid",
         ".lagda",
-        ".litcoffee",
         ".ls",
         "._ls",
         ".xm",
@@ -810,7 +836,6 @@
         ".pmod",
         ".pogo",
         ".pony",
-        ".ps",
         ".eps",
         ".pde",
         ".prolog",
@@ -825,7 +850,6 @@
         ".pri",
         ".raml",
         ".rdoc",
-        ".rkt",
         ".rktd",
         ".rktl",
         ".scrbl",
@@ -879,7 +903,6 @@
         ".styl",
         ".scd",
         ".txl",
-        ".tcl",
         ".adp",
         ".tm",
         ".tcsh",
@@ -954,7 +977,6 @@
         ".zpl",
         ".ec",
         ".eh",
-        ".edn",
         ".fish",
         ".mu",
         ".nc",
