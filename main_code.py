@@ -147,11 +147,13 @@ class CodeLineMeter:
 
         # Построение гистограммы
         with plt.style.context('cyberpunk'):
+            colors = plt.cm.plasma(np.linspace(0.2, 1, len(df)))
             ax = df.plot(x='Language', kind='bar', stacked=False, alpha=0.8, figsize=(16, 9), legend=False)
             ax.set_ylim(top=ax.get_ylim()[1] * 1.1)
-            for p in ax.patches:
+            for i, p in enumerate(ax.patches):
+                p.set_facecolor(colors[i % len(colors)])
                 ax.annotate(str(p.get_height()), (p.get_x() + p.get_width() / 2, p.get_height()),
-                            ha='center', va='bottom', rotation=30)
+                ha='center', va='bottom', rotation=30)
             plt.xticks(range(len(df)), df['Language'], fontsize=10, ha='center')
             plt.gcf().autofmt_xdate()
 
