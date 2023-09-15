@@ -88,7 +88,7 @@ class CodeLineMeter:
             os.system(f"rd /s /q {repo_dir}")
         else:
             os.system(f"rm -rf {repo_dir}")
-                
+
         return result, total_lines
 
     def analyze_projects(self):
@@ -108,23 +108,19 @@ class CodeLineMeter:
 
         logging.info(f"Analysis completed in {(str((datetime.datetime.now() - self.start_time)).split('.')[0])}")
         shutil.rmtree(self.repo_folder, ignore_errors=True)
-        
+
         return self.result, self.total
 
     # Построение отчётности
     def generate_visualizations(self, result, total_lines, languages, reports_dir):
         # Создание словаря temp на основе languages
         temp = {key: 0 for key in languages}
-        text_value = 0
-        other_value = 0
-        md_value = 0
-
         for values in result.values():
             language_lines = values[1:-1]
             for language, lines in zip(temp.keys(), language_lines):
                 temp[language] += lines
 
-        # Проверяем наличие ключей и извлекаем их значения
+        # Удаляем лишние данные из диаграмм
         if "Markdown" in temp:
             md_value = temp["Markdown"]
             del temp["Markdown"]
@@ -137,10 +133,12 @@ class CodeLineMeter:
         if "Patch files" in temp:
             patch_value = temp["Patch files"]
             del temp["Patch files"]
+        if "Log files" in temp:
+            log_value = temp["Log files"]
+            del temp["Log files"]
+        programm_value = total_lines - text_value - patch_value - md_value - log_value
 
-        programm_value = total_lines - text_value - patch_value - md_value
-
-        # Сортировка от большего к меньшему исключая нулевые значения
+        # Сортировка оставшихся данных от большего к меньшему исключая нулевые значения
         temp_filtered = {k: v for k, v in temp.items() if v != 0}
         df = pd.DataFrame({'Language': list(temp_filtered.keys()), 'Count': list(temp_filtered.values())})
         df = df.sort_values('Count', ascending=False)
@@ -157,17 +155,18 @@ class CodeLineMeter:
                 ha='center', va='bottom', rotation=30)
             plt.xticks(range(len(df)), df['Language'], fontsize=10, ha='center')
             plt.gcf().autofmt_xdate()
-
             # Добавление легенды с текстовыми метками
             legend_elements = [
-                Line2D([0], [0], color=plt.cm.rainbow(0.2), lw=8, label=f'Total Lines: {total_lines}'),
-                Line2D([0], [0], color=plt.cm.rainbow(0.4), lw=8, label=f'Program Code: {programm_value}'),
-                Line2D([0], [0], color=plt.cm.rainbow(0.6), lw=8, label=f'Markdown Lines: {md_value}'),
-                Line2D([0], [0], color=plt.cm.rainbow(0.8), lw=8, label=f'Any Text Lines: {text_value}'),
+                Line2D([0], [0], color=plt.cm.rainbow(0.0), lw=8, label=f'Total Lines: {total_lines}'),
+                Line2D([0], [0], color=plt.cm.rainbow(0.2), lw=8, label=f'Program Code: {programm_value}'),
+                Line2D([0], [0], color=plt.cm.rainbow(0.4), lw=8, label=f'Markdown Lines: {md_value}'),
+                Line2D([0], [0], color=plt.cm.rainbow(0.6), lw=8, label=f'Any Text Lines: {text_value}'),
+                Line2D([0], [0], color=plt.cm.rainbow(0.8), lw=8, label=f'Log files Lines: {log_value}'),
                 Line2D([0], [0], color=plt.cm.rainbow(1.0), lw=8, label=f'Other Lang Code: {other_value}')
             ]
             ax.legend(handles=legend_elements, fontsize=14, loc='upper right')
             plt.tight_layout()
+
         histogram_chart_pdf_path = os.path.join(reports_dir, 'histogram_chart.pdf')
         plt.savefig(histogram_chart_pdf_path, format="pdf", dpi=300, orientation='portrait', bbox_inches='tight')
 
@@ -185,6 +184,7 @@ class CodeLineMeter:
                 if label.get_text() == '':
                     text_handle.set_alpha(0)
             ax.axis('equal')
+
         donat_chart_pdf_path = os.path.join(reports_dir, 'donat_chart.pdf')
         plt.savefig(donat_chart_pdf_path, format="pdf", dpi=300, orientation='portrait', bbox_inches='tight')
 
