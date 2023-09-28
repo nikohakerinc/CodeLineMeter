@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="script" type="script/js" href="{{ url_for('static', filename='js/script.js') }}">
+    <title>Code Line Meter</title>
+</head>
+<body>
+    <div class="label-image"></span>
+        <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Code_Line_Meter_logo">
+    </div>
+    <form class="form" action="/" method="POST">
+        <div class="form-row">
+            <label><span class="form-hint">Введите Ваш логин от Git</span>
+                <input type="text" class="field" placeholder="ExampleUser" name="git_username" required>
+            </label>
+        </div>
+        <div class="form-row">
+            <label for="password"><span class="form-hint">Укажите Ваш личный токен доступа к Git</span>
+                <input type="password" class="field" placeholder="G1t-us3R_t0k3N" name="git_token" required>
+            </label>
+        </div>
+        <div class="form-row">
+            <label><span class="form-hint">Введите ваш e-mail</span>
+                <input type="email" class="field" placeholder="example@corp.com" name="e_mail" required pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}">
+            </label>
+        </div>
+        <div class="form-row">
+            <label><span class="form-hint">Укажите список репозиториев для подсчёта строк программного кода</span>
+                <textarea class="field textarea" placeholder="Каждый репозиторий должен быть указан в виде индивидуальной ссылки, каждая с новой строки, и заканчиваться на '.git'" name="projects" required></textarea>
+            </label>
+        </div>
+        <div class="form-hint">
+            <label class="checkbox">
+                <div class="checkbox__text">Я даю своё согласие на обработку персональных данных</div>
+                <input type="checkbox" class='checkbox__input' required>
+                <div class="checkbox__div"></div>
+            </label>
+        </div>
+        <div class="form-row">
+            <button type="submit" class="button">Отправить</button>
+        </div>
+    </form>
+</body>
+</html>
