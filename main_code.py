@@ -59,7 +59,7 @@ class CodeLineMeter:
 
         start_time = datetime.datetime.now()
         logging.info(f"Start cloning a repository ({i}/{line_count}): {project_dir}")
-        os.system(f"git clone https://{os.getenv('GIT_USERNAME')}:{os.getenv('GIT_TOKEN')}@{repo_url} {repo_dir}")
+        os.system(f"GIT_SSL_NO_VERIFY=true git clone https://{os.getenv('GIT_USERNAME')}:{os.getenv('GIT_TOKEN')}@{repo_url} {repo_dir}")
         logging.info(f"Finish cloning a repository: {project_dir}")
         timer_rounded = round(((datetime.datetime.now() - start_time).total_seconds()), 2)
         logging.info(f"Completed in: {timer_rounded} seconds")
