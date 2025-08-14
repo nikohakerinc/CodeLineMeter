@@ -193,8 +193,8 @@ class CodeLineMeter:
 
         # Гистограмма
         with plt.style.context('cyberpunk'):
-            fig, ax = plt.subplots(figsize=(16, 9))
-            colors = plt.cm.plasma(np.linspace(0.2, 1, len(df)))
+            fig, ax = plt.subplots(figsize=(16, 10))
+            colors = plt.cm.turbo(np.linspace(0.2, 1, len(df)))
             
             bars = plt.bar(df.index, df['Total'], color=colors)
             
@@ -222,33 +222,36 @@ class CodeLineMeter:
 
         # Круговая диаграмма
         with plt.style.context('cyberpunk'):
-            fig, ax = plt.subplots(figsize=(16, 9))
-            
+            sizes = df['Total']
+            labels = [f"{lang} ({int(count):,})" if count / sum(sizes) >= 0.015 else '' for lang, count in zip(df.index, sizes)]
             explode = [0.1 if lang == df.index[0] else 0 for lang in df.index]
+            colors = plt.cm.plasma(np.linspace(0.1, 1, len(df)))
             
-            colors = plt.cm.plasma(np.linspace(0.2, 1, len(df)))
+            fig, ax = plt.subplots(figsize=(16, 10))
+            wedges, text_labels, pct_texts = ax.pie(sizes, explode=explode, labels=labels, colors=colors,
+                                                  autopct=lambda pct: f"{pct:.1f}%" if pct > 1.5 else '',
+                                                  startangle=90, wedgeprops=dict(width=0.5), rotatelabels=True)
             
-            wedges, labels, pct_texts = ax.pie(
-                df['Total'], labels=df.index,
-                autopct=lambda pct: f"{pct:.1f}%" if pct > 1.5 else '',
-                startangle=45, wedgeprops=dict(width=0.5),
-                colors=colors,
-                explode=explode
-            )
-            
-            for text in pct_texts:
-                text.set_color('white')
-                text.set_fontsize(12)
-                
+            # Настройка видимости для меток и текста процентов
+            for label, pct_text in zip(text_labels, pct_texts):
+                if label.get_text() == '':
+                    label.set_alpha(0)  # Скрываем метки для мелких секторов
+                    pct_text.set_alpha(0)  # Скрываем проценты для этих же секторов
+                else:
+                    label.set_color('white')
+                    label.set_fontsize(12)
+                    pct_text.set_color('white')
+                    pct_text.set_fontsize(12)
+
             ax.axis('equal')
-            ax.set_title("Percentage of Lines of Code by Language")
+            # ax.set_title("Percentage of Lines of Code by Language")
+            
             plt.tight_layout()
-            plt.savefig(os.path.join(self.reports_dir, 'donut_chart.pdf'), dpi=300)
+            plt.savefig(os.path.join(self.reports_dir, 'donut_chart.pdf'), dpi=300, orientation='portrait', bbox_inches='tight')
             plt.close(fig)
             self.logger.info("Donut chart generated.")
 
     def run(self):
-        """Запускает весь процесс анализа."""
         start_time = datetime.datetime.now()
         self.logger.info("Starting code line meter...")
 
