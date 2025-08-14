@@ -11,11 +11,12 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import mplcyberpunk
-
-# Для совместимости с более старыми версиями Matplotlib
 from matplotlib.lines import Line2D
+from pygments.lexers import guess_lexer_for_filename
+from pygments.token import Comment
+from pygments.util import ClassNotFound
 
-# Загружаем переменные окружения
+# Загружаем переменные окружения из файла .env
 load_dotenv()
 
 @dataclass
@@ -28,15 +29,12 @@ class RepoStats:
 
 class CodeLineMeter:
     """Основной класс для анализа проектов."""
-    def __init__(self, lang_file='lang_dict.json', projects_file='project.txt'):
+    def __init__(self, projects_file='project.txt'):
         base_dir = os.path.dirname(os.path.abspath(__file__))
         self.log_dir = os.path.join(base_dir, 'logs')
         self.reports_dir = os.path.join(base_dir, 'reports')
         self.repo_folder = os.path.join(base_dir, "repo")
 
-        self.languages = self.load_languages(lang_file)
-        # Создаем обратный словарь для быстрого поиска языка по расширению
-        self.ext_to_lang = {ext: lang for lang, extensions in self.languages.items() for ext in extensions}
         self.projects = self.load_projects(projects_file)
         self.results = []
         self.global_start_time = datetime.datetime.now()
@@ -44,21 +42,14 @@ class CodeLineMeter:
         self._create_directories()
         self.logger = self._setup_logging()
 
-    def load_languages(self, file_path):
-        """Загружает словарь языков из JSON-файла."""
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except FileNotFoundError:
-            raise FileNotFoundError(f"Файл {file_path} не найден.")
-
     def load_projects(self, file_path):
         """Загружает список проектов из текстового файла."""
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 return [line.strip() for line in f if line.strip()]
         except FileNotFoundError:
-            raise FileNotFoundError(f"Файл {file_path} не найден.")
+            self.logger.error(f"Файл {file_path} не найден.")
+            return []
 
     def _create_directories(self):
         """Создает необходимые директории."""
@@ -66,17 +57,14 @@ class CodeLineMeter:
             os.makedirs(path, exist_ok=True)
 
     def _setup_logging(self):
-        """Настраивает логирование с ротацией файлов."""
+        """Настраивает логирование."""
         logger = logging.getLogger("CodeLineMeter")
         logger.setLevel(logging.INFO)
-        
-        # Убираем дублирование логов в консоль
-        # Устанавливаем file handler для записи в файл
         fh = logging.FileHandler(os.path.join(self.log_dir, 'info.log'))
         formatter = logging.Formatter('%(levelname)s: %(asctime)s %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
         fh.setFormatter(formatter)
-        logger.addHandler(fh)
-        
+        if not logger.handlers:
+            logger.addHandler(fh)
         return logger
 
     def _clone_repository(self, project_url):
@@ -91,28 +79,58 @@ class CodeLineMeter:
             return repo_name, repo_dir
         except Exception as e:
             self.logger.error(f"Failed to clone {project_url}: {e}")
+            shutil.rmtree(repo_dir, ignore_errors=True)
             return None, None
 
     def _count_lines(self, repo_path):
-        """Подсчитывает строки кода, используя оптимизированный поиск по расширению."""
-        language_lines = {lang: 0 for lang in self.languages}
+        """
+        Подсчитывает строки кода, исключая комментарии.
+        Использует Pygments для определения языка и токенизации.
+        """
+        language_lines = {}
         total_lines = 0
 
         for root, _, files in os.walk(repo_path):
             for file in files:
-                _, ext = os.path.splitext(file)
-                # Быстрый поиск языка по расширению через словарь
-                lang = self.ext_to_lang.get(ext.lower())
-                if lang:
-                    try:
-                        with open(os.path.join(root, file), 'r', encoding='utf-8') as f:
-                            non_empty = sum(1 for line in f if line.strip())
-                            language_lines[lang] += non_empty
-                            total_lines += non_empty
-                    except (IOError, UnicodeDecodeError) as e:
-                        self.logger.warning(f"Could not read {file}: {e}")
-        
-        return language_lines, total_lines
+                filepath = os.path.join(root, file)
+                
+                try:
+                    # Читаем содержимое файла и определяем лексер
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    
+                    lexer = guess_lexer_for_filename(filepath, content, encoding='utf-8')
+
+                except (ClassNotFound, UnicodeDecodeError, FileNotFoundError) as e:
+                    self.logger.warning(f"Could not process {file}: {e}")
+                    continue
+
+                lang = lexer.name
+                language_lines.setdefault(lang, 0)
+
+                non_comment_lines = 0
+                current_line_has_code = False
+                
+                tokens = lexer.get_tokens(content)
+                for token_type, value in tokens:
+                    if Comment in token_type:
+                        continue
+                    
+                    if value.strip():
+                        current_line_has_code = True
+                    
+                    if '\n' in value:
+                        if current_line_has_code:
+                            non_comment_lines += 1
+                        current_line_has_code = False
+                
+                if current_line_has_code:
+                    non_comment_lines += 1
+
+                language_lines[lang] += non_comment_lines
+                total_lines += non_comment_lines
+    
+        return {lang: count for lang, count in language_lines.items() if count > 0}, total_lines
 
     def _analyze_project(self, project_url):
         """Анализирует один проект."""
@@ -126,8 +144,11 @@ class CodeLineMeter:
 
     def analyze_projects(self):
         """Анализирует все проекты с использованием многопоточности."""
+        if not self.projects:
+            self.logger.warning("No projects found in project.txt.")
+            return
+
         self.logger.info(f"Analyzing {len(self.projects)} projects...")
-        # Увеличиваем количество потоков для ускорения клонирования
         max_workers = os.cpu_count() or 4
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             for result in executor.map(self._analyze_project, self.projects):
@@ -137,6 +158,10 @@ class CodeLineMeter:
 
     def save_csv(self):
         """Сохраняет результаты в CSV-файл."""
+        if not self.results:
+            self.logger.warning("No results to save.")
+            return
+            
         data = []
         for res in self.results:
             row = {
@@ -154,26 +179,41 @@ class CodeLineMeter:
 
     def generate_charts(self):
         """Генерирует гистограмму и круговую диаграмму."""
-        
-        # Используем pandas для агрегации данных, это быстрее и читабельнее
+        if not self.results:
+            self.logger.warning("No data to generate charts.")
+            return
+
         df = pd.DataFrame([res.language_lines for res in self.results]).fillna(0).T
         df['Total'] = df.sum(axis=1)
         df = df[df['Total'] > 0].sort_values('Total', ascending=False)
+
+        if df.empty:
+            self.logger.warning("No code lines found to generate charts.")
+            return
 
         # Гистограмма
         with plt.style.context('cyberpunk'):
             fig, ax = plt.subplots(figsize=(16, 9))
             colors = plt.cm.plasma(np.linspace(0.2, 1, len(df)))
             
-            df['Total'].plot(kind='bar', ax=ax, color=colors)
+            bars = plt.bar(df.index, df['Total'], color=colors)
+            
             ax.set_title("Distribution of Lines of Code by Language")
             ax.set_xlabel("Language")
             ax.set_ylabel("Lines of Code")
 
-            # Добавляем подписи к столбцам
-            for p in ax.patches:
-                ax.annotate(f"{int(p.get_height()):,}", (p.get_x() + p.get_width() / 2., p.get_height()),
+            plt.xticks(rotation=45, ha='right')
+            
+            for bar in bars:
+                height = bar.get_height()
+                ax.annotate(f"{int(height):,}",
+                            xy=(bar.get_x() + bar.get_width() / 2, height),
+                            xytext=(0, 3),
+                            textcoords="offset points",
                             ha='center', va='bottom', rotation=30)
+            
+            legend_elements = [Line2D([0], [0], color=c, lw=4, label=l) for c, l in zip(colors, df.index)]
+            ax.legend(handles=legend_elements, title="Languages", loc='upper right')
             
             plt.tight_layout()
             plt.savefig(os.path.join(self.reports_dir, 'histogram_chart.pdf'), dpi=300)
@@ -183,11 +223,23 @@ class CodeLineMeter:
         # Круговая диаграмма
         with plt.style.context('cyberpunk'):
             fig, ax = plt.subplots(figsize=(16, 9))
-            ax.pie(
+            
+            explode = [0.1 if lang == df.index[0] else 0 for lang in df.index]
+            
+            colors = plt.cm.plasma(np.linspace(0.2, 1, len(df)))
+            
+            wedges, labels, pct_texts = ax.pie(
                 df['Total'], labels=df.index,
                 autopct=lambda pct: f"{pct:.1f}%" if pct > 1.5 else '',
-                startangle=45, wedgeprops=dict(width=0.5)
+                startangle=45, wedgeprops=dict(width=0.5),
+                colors=colors,
+                explode=explode
             )
+            
+            for text in pct_texts:
+                text.set_color('white')
+                text.set_fontsize(12)
+                
             ax.axis('equal')
             ax.set_title("Percentage of Lines of Code by Language")
             plt.tight_layout()
@@ -195,20 +247,29 @@ class CodeLineMeter:
             plt.close(fig)
             self.logger.info("Donut chart generated.")
 
-
     def run(self):
         """Запускает весь процесс анализа."""
+        start_time = datetime.datetime.now()
+        self.logger.info("Starting code line meter...")
+
         self.analyze_projects()
         self.save_csv()
+        self.generate_charts()
         
         if self.results:
-            self.generate_charts()
-            total = sum(r.total_lines for r in self.results)
-            print(f"Total lines of code: {total:,}")
-            self.logger.info(f"Total lines of code: {total}")
+            total_lines = sum(r.total_lines for r in self.results)
+            print(f"Total lines of code: {total_lines:,}")
+            self.logger.info(f"Total lines of code: {total_lines}")
         else:
             print("No projects were analyzed.")
-            self.logger.warning("No projects were analyzed.")
+            self.logger.info("No projects were analyzed.")
+
+        end_time = datetime.datetime.now()
+        duration = end_time - start_time
+        self.logger.info(f"Process finished in {duration}")
+        print(f"Process finished in {duration}")
+
 
 if __name__ == '__main__':
+    # Убедитесь, что у вас установлен pygments: pip install pygments
     CodeLineMeter().run()
